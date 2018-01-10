@@ -1,4 +1,4 @@
-<img src="https://i.imgur.com/97vmDVl.png" width="100%">
+<img src="https://i.imgur.com/97vmDVl.png" width="50%">
 
 # JLmod 
 [VCV Rack](https://github.com/VCVRack/Rack) modules by Joakim Lindbom.
