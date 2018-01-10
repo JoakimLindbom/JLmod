@@ -149,7 +149,7 @@ struct SmallIntegerDisplayWidgeter : TransparentWidget {
         std::stringstream to_display;
         to_display = format4display(*value);
 
-        Vec textPos = Vec(8.0f, 23.0f);
+        Vec textPos = Vec(8.0f, 18.0f);
         NVGcolor textColor = nvgRGB(0x00, 0x00, 0x00);
         nvgFillColor(vg, textColor);
         nvgText(vg, textPos.x, textPos.y, to_display.str().substr(0, 4).c_str(), NULL);
@@ -225,61 +225,78 @@ TimersWidget::TimersWidget() {
     addChild(createScrew<ScrewSilver>(Vec(15, 365)));
     addChild(createScrew<ScrewSilver>(Vec(box.size.x-30, 365)));
 
+    int Box_pos_X = 23;
+    int Box_pos_Y = 65;
+    int Box_size_X = 50;
+    int Box_size_Y = 22;
     // Timer 1
     SmallIntegerDisplayWidgeter *timer1_dsp = new SmallIntegerDisplayWidgeter();
-    timer1_dsp->box.pos = Vec(23, 60);
-    timer1_dsp->box.size = Vec(50, 30);
+    timer1_dsp->box.pos = Vec(Box_pos_X, Box_pos_Y);
+    timer1_dsp->box.size = Vec(Box_size_X, Box_size_Y);
     timer1_dsp->value = &module->timer1_dsp_val;
     addChild(timer1_dsp);
-
+    int Box_offset_X = 60;
     SmallIntegerDisplayWidgeter *counter = new SmallIntegerDisplayWidgeter();
-    counter->box.pos = Vec(83, 60);
-    counter->box.size = Vec(50, 30);
+    counter->box.pos = Vec(Box_pos_X + Box_offset_X, Box_pos_Y);
+    counter->box.size = Vec(Box_size_X, Box_size_Y);
     counter->value = &module->counter1_val;
     addChild(counter);
 
-    addInput(createInput<PJ301MPort>(Vec(8, 123), module, Timers::RESET1_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(33, 123), module, Timers::CV1_INPUT));
-    addParam(createParam<LEDButton>(Vec(44, 123), module, Timers::timer1_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(58, 95), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(113, 123), module, Timers::TRIGGER1_OUTPUT));
+    int Reset_X = 80;
+    int CV_X = 50;
+    int Button_X = 69;
+    int Knob_X = 10;
+    int Gate_X = 113;
+
+    int Inputs_Y = 112;
+    int Knob_Y = 95;
+    int Gate_Y = Inputs_Y;
+    int Button_Y = 47;
+
+    addInput(createInput<PJ301MPort>(Vec(Reset_X, Inputs_Y), module, Timers::RESET1_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(CV_X, Inputs_Y), module, Timers::CV1_INPUT));
+    addParam(createParam<LEDButton>(Vec(Button_X, Button_Y), module, Timers::timer1_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, Knob_Y), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
+    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, Gate_Y), module, Timers::TRIGGER1_OUTPUT));
 
     // Timer 2
+    int offset_Y = 100;
     SmallIntegerDisplayWidgeter *timer2_dsp = new SmallIntegerDisplayWidgeter();
-    timer2_dsp->box.pos = Vec(23, 160);
-    timer2_dsp->box.size = Vec(50, 30);
+    timer2_dsp->box.pos = Vec(Box_pos_X, offset_Y + Box_pos_Y);
+    timer2_dsp->box.size = Vec(Box_size_X, Box_size_Y);
     timer2_dsp->value = &module->timer2_dsp_val;
     addChild(timer2_dsp);
 
     SmallIntegerDisplayWidgeter *counter2 = new SmallIntegerDisplayWidgeter();
-    counter2->box.pos = Vec(83, 160);
-    counter2->box.size = Vec(50, 30);
+    counter2->box.pos = Vec(Box_pos_X + Box_offset_X, offset_Y + Box_pos_Y);
+    counter2->box.size = Vec(Box_size_X, Box_size_Y);
     counter2->value = &module->counter2_val;
     addChild(counter2);
 
-    addInput(createInput<PJ301MPort>(Vec(8, 223), module, Timers::RESET2_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(33, 223), module, Timers::CV2_INPUT));
-    addParam(createParam<LEDButton>(Vec(44, 223), module, Timers::timer2_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(58, 195), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(95, 223), module, Timers::TRIGGER2_OUTPUT));
+    addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET2_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV2_INPUT));
+    addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer2_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
+    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER2_OUTPUT));
 
     // Timer 3
+    offset_Y = 200;
     SmallIntegerDisplayWidgeter *timer3_dsp = new SmallIntegerDisplayWidgeter();
-    timer3_dsp->box.pos = Vec(23, 260);
-    timer3_dsp->box.size = Vec(50, 30);
+    timer3_dsp->box.pos = Vec(Box_pos_X, offset_Y + Box_pos_Y);
+    timer3_dsp->box.size = Vec(Box_size_X, Box_size_Y);
     timer3_dsp->value = &module->timer3_dsp_val;
     addChild(timer3_dsp);
 
     SmallIntegerDisplayWidgeter *counter3 = new SmallIntegerDisplayWidgeter();
-    counter3->box.pos = Vec(83, 260);
-    counter3->box.size = Vec(50, 30);
+    counter3->box.pos = Vec(Box_pos_X + Box_offset_X, offset_Y + Box_pos_Y);
+    counter3->box.size = Vec(Box_size_X, Box_size_Y);
     counter3->value = &module->counter3_val;
     addChild(counter3);
 
-    addInput(createInput<PJ301MPort>(Vec(8, 323), module, Timers::RESET3_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(33, 323), module, Timers::CV3_INPUT));
-    addParam(createParam<LEDButton>(Vec(44, 323), module, Timers::timer3_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(58, 295), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(95, 323), module, Timers::TRIGGER3_OUTPUT));
+    addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET3_INPUT));
+    addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV3_INPUT));
+    addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer3_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
+    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER3_OUTPUT));
 
 }
