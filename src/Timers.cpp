@@ -16,6 +16,9 @@ struct Timer {
     bool running = false;
     float seconds = 0.0f;
     float counter = 20.0f;
+    int Stride = 1;
+    float SampleRate = 0.000015f;
+    float TimeStep = 0.0f;
     bool trigger = false;
     float output = 0.0f;
 
@@ -25,6 +28,14 @@ struct Timer {
     }
     void setTime(float in_seconds) {
         seconds = in_seconds;
+    }
+    void setStride(int steps=10000) {
+        Stride = steps;
+        TimeStep = Stride/SampleRate;
+    }
+    void setSampleRate(float in_SampleRate) {
+        SampleRate = in_SampleRate;
+        TimeStep = Stride/SampleRate;
     }
     void setReset(float reset) {
         if (resetTrigger.process(reset)) {
@@ -44,9 +55,11 @@ struct Timer {
     }
 
 
-    void step(float dt) {
-        counter -= dt;
-        //rack::debug("counter %f", counter);
+    //void step(float dt) {
+    void step() {
+        //counter -= dt;
+        counter -= TimeStep;
+        //rack::debug("counter %f - €f", counter, engineGetSampleRate());
 
         if (counter <= 0.0f) {
             trigger = true;
@@ -84,6 +97,9 @@ struct Timers: Module {
         timer2_RESET_BUTTON,
         timer3_PARAM,
         timer3_RESET_BUTTON,
+        timer1_FINE,
+        timer2_FINE,
+        timer3_FINE,
         NUM_PARAMS
     };
     enum InputIds {
@@ -112,15 +128,19 @@ struct Timers: Module {
     Timer timer2;
     Timer timer3;
 
-    float timer1_dsp_val;
-    float timer2_dsp_val;
-    float timer3_dsp_val;
-    float counter1_val;
-    float counter2_val;
-    float counter3_val;
+    float timer1_dsp_val = 0.0F;
+    float timer2_dsp_val = 0.0F;
+    float timer3_dsp_val = 0.0F;
+    float counter1_val = 0.0F;
+    float counter2_val = 0.0F;
+    float counter3_val = 0.0F;
+
+    int Stride = 2500; // How many steps to include in a giant stride?
+    int Steps = 0;
 
     Timers() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
+    void onSampleRateChange() override ;
 };
 
 struct SmallIntegerDisplayWidgeter : TransparentWidget {
@@ -156,55 +176,88 @@ struct SmallIntegerDisplayWidgeter : TransparentWidget {
     }
 };
 
+void Timers::onSampleRateChange() {
+    int SampleRate = engineGetSampleRate();
+    timer1.setSampleRate(SampleRate); timer1.setStride(Stride);
+    timer2.setSampleRate(SampleRate); timer2.setStride(Stride);
+    timer3.setSampleRate(SampleRate); timer3.setStride(Stride);
+}
+
 void Timers::step() {
+    //rack::debug("CPU %f", cpuTime);
 
-    timer1_dsp_val = params[timer1_PARAM].value;
-    timer1.setTime(timer1_dsp_val);
 
-    if (params[timer1_RESET_BUTTON].value > 0.0f || inputs[RESET1_INPUT].value > 0.0f) {
-        timer1.Start();
-    }
+    if (Steps++ >= Stride) {
+        Steps = 0;
+        //rack::debug("dsp_val %f conter_val %f", timer1_dsp_val, counter1_val);
 
-    if (timer1.running) {
-        timer1.step(1.0 / engineGetSampleRate());
-        counter1_val = timer1.counter;
-    }
-    else {
-        timer1.ResetOutput();
-    }
-    outputs[TRIGGER1_OUTPUT].value = timer1.output;
+        if (inputs[CV1_INPUT].active) {
+            timer1_dsp_val = inputs[CV1_INPUT].value * 99.99f;
+            lights[LIGHT1].value = 1.0f;
 
-    timer2_dsp_val = params[timer2_PARAM].value;
-    timer2.setTime(timer2_dsp_val);
+        } else {
+            lights[LIGHT1].value = 0.0f;
+            timer1_dsp_val = clampf(params[timer1_PARAM].value + params[timer1_FINE].value, 0.0f, 999.9f);
+        }
+        timer1.setTime(timer1_dsp_val);
 
-    if (params[timer2_RESET_BUTTON].value > 0.0f || inputs[RESET2_INPUT].value > 0.0f) {
-        timer2.Start();
-    }
+        if (params[timer1_RESET_BUTTON].value > 0.0f || inputs[RESET1_INPUT].value > 0.0f) {
+            timer1.Start();
+        }
 
-    if (timer2.running) {
-        timer2.step(1.0 / engineGetSampleRate());
-        counter2_val = timer2.counter;
-    }
-    else {
-        timer2.ResetOutput();
-    }
-    outputs[TRIGGER2_OUTPUT].value = timer2.output;
+        if (timer1.running) {
+            timer1.step();
+            counter1_val = timer1.counter;
+        } else {
+            timer1.ResetOutput();
+        }
+        outputs[TRIGGER1_OUTPUT].value = timer1.output;
 
-    timer3_dsp_val = params[timer3_PARAM].value;
-    timer3.setTime(timer3_dsp_val);
+        if (inputs[CV2_INPUT].active) {
+            timer2_dsp_val = inputs[CV2_INPUT].value * 99.99f;
+            lights[LIGHT2].value = 1.0f;
 
-    if (params[timer3_RESET_BUTTON].value > 0.0f || inputs[RESET3_INPUT].value > 0.0f) {
-        timer3.Start();
-    }
+        } else {
+            lights[LIGHT2].value = 0.0f;
+            timer2_dsp_val = clampf(params[timer2_PARAM].value + params[timer2_FINE].value, 0.0f, 999.9f);
+        }
+        timer2.setTime(timer2_dsp_val);
 
-    if (timer3.running) {
-        timer3.step(1.0 / engineGetSampleRate());
-        counter3_val = timer3.counter;
+        if (params[timer2_RESET_BUTTON].value > 0.0f || inputs[RESET2_INPUT].value > 0.0f) {
+            timer2.Start();
+        }
+
+        if (timer2.running) {
+            timer2.step();
+            counter2_val = timer2.counter;
+        } else {
+            timer2.ResetOutput();
+        }
+        outputs[TRIGGER2_OUTPUT].value = timer2.output;
+
+        if (inputs[CV3_INPUT].active) {
+            timer3_dsp_val = inputs[CV3_INPUT].value * 99.99f;
+            lights[LIGHT3].value = 1.0f;
+
+        } else {
+            lights[LIGHT3].value = 0.0f;
+            timer3_dsp_val = clampf(params[timer3_PARAM].value + +params[timer3_FINE].value, 0.0f, 999.9f);
+        }
+        timer3.setTime(timer3_dsp_val);
+
+        if (params[timer3_RESET_BUTTON].value > 0.0f || inputs[RESET3_INPUT].value > 0.0f) {
+            timer3.Start();
+        }
+
+        if (timer3.running) {
+            //timer3.step(1.0 / engineGetSampleRate());
+            timer3.step();
+            counter3_val = timer3.counter;
+        } else {
+            timer3.ResetOutput();
+        }
+        outputs[TRIGGER3_OUTPUT].value = timer3.output;
     }
-    else {
-        timer3.ResetOutput();
-    }
-    outputs[TRIGGER3_OUTPUT].value = timer3.output;
 
 }
 
@@ -245,19 +298,23 @@ TimersWidget::TimersWidget() {
     int Reset_X = 80;
     int CV_X = 50;
     int Button_X = 69;
-    int Knob_X = 10;
+    int Knob_X = 13;
+    int Knob2_X = Knob_X + 21;
     int Gate_X = 113;
 
     int Inputs_Y = 112;
-    int Knob_Y = 95;
+    int Knob_Y = 112;
+    int Knob2_Y = Knob_Y-15;
     int Gate_Y = Inputs_Y;
     int Button_Y = 47;
 
     addInput(createInput<PJ301MPort>(Vec(Reset_X, Inputs_Y), module, Timers::RESET1_INPUT));
     addInput(createInput<PJ301MPort>(Vec(CV_X, Inputs_Y), module, Timers::CV1_INPUT));
     addParam(createParam<LEDButton>(Vec(Button_X, Button_Y), module, Timers::timer1_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, Knob_Y), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, Knob_Y), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<Trimpot>(Vec(Knob2_X, Knob2_Y), module, Timers::timer1_FINE, 0.0, 5.0, 0.0));
     addOutput(createOutput<PJ301MPort>(Vec(Gate_X, Gate_Y), module, Timers::TRIGGER1_OUTPUT));
+    addChild(createLight<SmallLight<RedLight>>(Vec(Button_X + 20 , Button_Y), module, Timers::LIGHT1));
 
     // Timer 2
     int offset_Y = 100;
@@ -276,7 +333,8 @@ TimersWidget::TimersWidget() {
     addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET2_INPUT));
     addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV2_INPUT));
     addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer2_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer2_FINE, 0.0, 5.0, 0.0));
     addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER2_OUTPUT));
 
     // Timer 3
@@ -296,7 +354,8 @@ TimersWidget::TimersWidget() {
     addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET3_INPUT));
     addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV3_INPUT));
     addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer3_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<RoundBlackKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
+    addParam(createParam<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer3_FINE, 0.0, 5.0, 0.0));
     addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER3_OUTPUT));
 
 }
