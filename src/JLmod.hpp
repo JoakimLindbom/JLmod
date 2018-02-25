@@ -8,6 +8,8 @@ extern Plugin *plugin;
 // module widgets
 ////////////////////
 
-struct TimersWidget: ModuleWidget {
-    TimersWidget();
-};
+//struct TimersWidget: ModuleWidget {
+//    TimersWidget();
+//};
+
+extern Model *modelTimers;

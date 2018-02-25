@@ -6,7 +6,7 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
-#include "util.hpp"
+//#include "util/logger.hpp"
 
 /*
 Thanks to Strum for the display widget!
@@ -24,7 +24,8 @@ struct Timer {
 
     SchmittTrigger resetTrigger;
     Timer() {
-        resetTrigger.setThresholds(0.0, 0.01);
+        //resetTrigger.setThresholds(0.0, 0.01);
+        resetTrigger.process(rescale(0.0f, 0.0f, 0.01f, 0.f, 1.f));
     }
     void setTime(float in_seconds) {
         seconds = in_seconds;
@@ -197,7 +198,7 @@ void Timers::step() {
 
         } else {
             lights[LIGHT1].value = 0.0f;
-            timer1_dsp_val = clampf(params[timer1_PARAM].value + params[timer1_FINE].value, 0.0f, 999.9f);
+            timer1_dsp_val = clamp(params[timer1_PARAM].value + params[timer1_FINE].value, 0.0f, 999.9f);
         }
         timer1.setTime(timer1_dsp_val);
 
@@ -219,7 +220,7 @@ void Timers::step() {
 
         } else {
             lights[LIGHT2].value = 0.0f;
-            timer2_dsp_val = clampf(params[timer2_PARAM].value + params[timer2_FINE].value, 0.0f, 999.9f);
+            timer2_dsp_val = clamp(params[timer2_PARAM].value + params[timer2_FINE].value, 0.0f, 999.9f);
         }
         timer2.setTime(timer2_dsp_val);
 
@@ -241,7 +242,7 @@ void Timers::step() {
 
         } else {
             lights[LIGHT3].value = 0.0f;
-            timer3_dsp_val = clampf(params[timer3_PARAM].value + +params[timer3_FINE].value, 0.0f, 999.9f);
+            timer3_dsp_val = clamp(params[timer3_PARAM].value + +params[timer3_FINE].value, 0.0f, 999.9f);
         }
         timer3.setTime(timer3_dsp_val);
 
@@ -261,9 +262,14 @@ void Timers::step() {
 
 }
 
-TimersWidget::TimersWidget() {
-    Timers *module = new Timers();
-    setModule(module);
+struct TimersWidget: ModuleWidget {
+    TimersWidget(Timers *module);
+};
+
+//TimersWidget::TimersWidget() {
+//    Timers *module = new Timers();
+//    setModule(module);
+TimersWidget::TimersWidget(Timers *module) : ModuleWidget(module) {
     box.size = Vec(15*10, 380);
 
     {
@@ -273,10 +279,10 @@ TimersWidget::TimersWidget() {
         addChild(panel);
     }
 
-    addChild(createScrew<ScrewSilver>(Vec(15, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x-30, 0)));
-    addChild(createScrew<ScrewSilver>(Vec(15, 365)));
-    addChild(createScrew<ScrewSilver>(Vec(box.size.x-30, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x-30, 0)));
+    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
+    addChild(Widget::create<ScrewSilver>(Vec(box.size.x-30, 365)));
 
     int Box_pos_X = 23;
     int Box_pos_Y = 65;
@@ -308,13 +314,13 @@ TimersWidget::TimersWidget() {
     int Gate_Y = Inputs_Y;
     int Button_Y = 47;
 
-    addInput(createInput<PJ301MPort>(Vec(Reset_X, Inputs_Y), module, Timers::RESET1_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(CV_X, Inputs_Y), module, Timers::CV1_INPUT));
-    addParam(createParam<LEDButton>(Vec(Button_X, Button_Y), module, Timers::timer1_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, Knob_Y), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
-    addParam(createParam<Trimpot>(Vec(Knob2_X, Knob2_Y), module, Timers::timer1_FINE, 0.0, 5.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, Gate_Y), module, Timers::TRIGGER1_OUTPUT));
-    addChild(createLight<SmallLight<RedLight>>(Vec(Button_X + 20 , Button_Y), module, Timers::LIGHT1));
+    addInput(Port::create<PJ301MPort>(Vec(Reset_X, Inputs_Y), Port::INPUT, module, Timers::RESET1_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(CV_X, Inputs_Y), Port::INPUT, module, Timers::CV1_INPUT));
+    addParam(ParamWidget::create<LEDButton>(Vec(Button_X, Button_Y), module, Timers::timer1_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<BefacoTinyKnob>(Vec(Knob_X, Knob_Y), module, Timers::timer1_PARAM, 0.0, 1000.0, 0.0));
+    addParam(ParamWidget::create<Trimpot>(Vec(Knob2_X, Knob2_Y), module, Timers::timer1_FINE, 0.0, 5.0, 0.0));
+    addOutput(Port::create<PJ301MPort>(Vec(Gate_X, Gate_Y), Port::OUTPUT, module, Timers::TRIGGER1_OUTPUT));
+    addChild(ModuleLightWidget::create<SmallLight<RedLight>>(Vec(Button_X + 20 , Button_Y), module, Timers::LIGHT1));
 
     // Timer 2
     int offset_Y = 100;
@@ -330,12 +336,12 @@ TimersWidget::TimersWidget() {
     counter2->value = &module->counter2_val;
     addChild(counter2);
 
-    addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET2_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV2_INPUT));
-    addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer2_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
-    addParam(createParam<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer2_FINE, 0.0, 5.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER2_OUTPUT));
+    addInput(Port::create<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), Port::INPUT, module, Timers::RESET2_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), Port::INPUT, module, Timers::CV2_INPUT));
+    addParam(ParamWidget::create<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer2_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer2_PARAM, 0.0, 1000.0, 0.0));
+    addParam(ParamWidget::create<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer2_FINE, 0.0, 5.0, 0.0));
+    addOutput(Port::create<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), Port::OUTPUT, module, Timers::TRIGGER2_OUTPUT));
 
     // Timer 3
     offset_Y = 200;
@@ -351,11 +357,13 @@ TimersWidget::TimersWidget() {
     counter3->value = &module->counter3_val;
     addChild(counter3);
 
-    addInput(createInput<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), module, Timers::RESET3_INPUT));
-    addInput(createInput<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), module, Timers::CV3_INPUT));
-    addParam(createParam<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer3_RESET_BUTTON, 0.0, 1.0, 0.0));
-    addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
-    addParam(createParam<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer3_FINE, 0.0, 5.0, 0.0));
-    addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER3_OUTPUT));
+    addInput(Port::create<PJ301MPort>(Vec(Reset_X, offset_Y + Inputs_Y), Port::INPUT, module, Timers::RESET3_INPUT));
+    addInput(Port::create<PJ301MPort>(Vec(CV_X, offset_Y + Inputs_Y), Port::INPUT, module, Timers::CV3_INPUT));
+    addParam(ParamWidget::create<LEDButton>(Vec(Button_X, offset_Y + Button_Y), module, Timers::timer3_RESET_BUTTON, 0.0, 1.0, 0.0));
+    addParam(ParamWidget::create<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM, 0.0, 1000.0, 0.0));
+    addParam(ParamWidget::create<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer3_FINE, 0.0, 5.0, 0.0));
+    addOutput(Port::create<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), Port::OUTPUT, module, Timers::TRIGGER3_OUTPUT));
+
+    Model *modelTimers = Model::create<Timers, TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG);
 
 }

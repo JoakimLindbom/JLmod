@@ -12,5 +12,6 @@ void init(rack::Plugin *p) {
 	p->website = "https://github.com/JoakimLindbom/vcvrack";
 
     // Utililites
-    p->addModel(createModel<TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG));
+    //p->addModel(createModel<TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG));
+    p->addModel(modelTimers);
 }
