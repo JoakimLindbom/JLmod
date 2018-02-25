@@ -364,6 +364,6 @@ TimersWidget::TimersWidget(Timers *module) : ModuleWidget(module) {
     addParam(ParamWidget::create<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer3_FINE, 0.0, 5.0, 0.0));
     addOutput(Port::create<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), Port::OUTPUT, module, Timers::TRIGGER3_OUTPUT));
 
-    Model *modelTimers = Model::create<Timers, TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG);
-
 }
+
+Model *modelTimers = Model::create<Timers, TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG);
