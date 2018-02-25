@@ -3,6 +3,8 @@
 # JLmod 
 [VCV Rack](https://github.com/VCVRack/Rack) modules by Joakim Lindbom.
 
+Version 0.5
+
 - [Contents](#contents)
   - [Utilities](#utilities)
     - [Timer](#timer)
