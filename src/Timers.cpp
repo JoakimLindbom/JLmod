@@ -15,12 +15,13 @@ Thanks to Strum for the display widget!
 struct Timer {
     bool running = false;
     float seconds = 0.0f;
-    float counter = 20.0f;
+    float counter = 0.0f;
     int Stride = 1;
     float SampleRate = 0.000015f;
     float TimeStep = 0.0f;
     bool trigger = false;
     float output = 0.0f;
+    bool initiated = false;
 
     SchmittTrigger resetTrigger;
     Timer() {
@@ -29,14 +30,21 @@ struct Timer {
     }
     void setTime(float in_seconds) {
         seconds = in_seconds;
+        if (!initiated) {
+            setStride();
+            setSampleRate(engineGetSampleRate());
+            initiated = true;
+        }
     }
     void setStride(int steps=10000) {
         Stride = steps;
         TimeStep = Stride/SampleRate;
+        rack::debug("setStride %d - %f", steps, TimeStep);
     }
     void setSampleRate(float in_SampleRate) {
         SampleRate = in_SampleRate;
         TimeStep = Stride/SampleRate;
+        rack::debug("setSampleRate %f", TimeStep);
     }
     void setReset(float reset) {
         if (resetTrigger.process(reset)) {
@@ -60,7 +68,7 @@ struct Timer {
     void step() {
         //counter -= dt;
         counter -= TimeStep;
-        //rack::debug("counter %f - €f", counter, engineGetSampleRate());
+        rack::debug("counter %f - %f", counter, engineGetSampleRate());
 
         if (counter <= 0.0f) {
             trigger = true;
@@ -142,6 +150,7 @@ struct Timers: Module {
     Timers() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
     void step() override;
     void onSampleRateChange() override ;
+    void onCreate() override ;
 };
 
 struct SmallIntegerDisplayWidgeter : TransparentWidget {
@@ -177,16 +186,23 @@ struct SmallIntegerDisplayWidgeter : TransparentWidget {
     }
 };
 
+
+
 void Timers::onSampleRateChange() {
+    rack::debug("onSampleRateChange");
     int SampleRate = engineGetSampleRate();
     timer1.setSampleRate(SampleRate); timer1.setStride(Stride);
     timer2.setSampleRate(SampleRate); timer2.setStride(Stride);
     timer3.setSampleRate(SampleRate); timer3.setStride(Stride);
 }
 
+void Timers::onCreate() {
+    rack::debug("onCreate");
+    Timers::onSampleRateChange(); // v0.6 doesn't seem to call onSampleRateChange as before
+}
+
 void Timers::step() {
     //rack::debug("CPU %f", cpuTime);
-
 
     if (Steps++ >= Stride) {
         Steps = 0;
