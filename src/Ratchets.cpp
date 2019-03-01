@@ -132,7 +132,7 @@ struct Ratchets : Module {
     // Sequencer matrix
     ENUMS(STEP_LED_PARAM, MAX_SEQUENCER_STEPS), // Enable/disable step
     ENUMS(RATCHETS1, MAX_SEQUENCER_STEPS),      // How many sub gates to trigger
-    ENUMS(BERNOULI_GATE, NUM_CLOCKS),           // Bernouly gate value - use RATCHET1 or RATCHET2 value?
+    ENUMS(BERNOULI_GATE, MAX_SEQUENCER_STEPS),  // Bernouly gate value - use RATCHET1 or RATCHET2 value?
     ENUMS(RATCHETS2, MAX_SEQUENCER_STEPS),      // How many sub gates to trigger
     ENUMS(OCTAVE_SEQ, MAX_SEQUENCER_STEPS),     // Output note: Octave
     ENUMS(CV_SEQ, MAX_SEQUENCER_STEPS),         // Output note: Note
@@ -179,11 +179,6 @@ struct Ratchets : Module {
 
   float old_gate_value = 0.0f;
 
-  uint64_t wait_8th = 0;
-  uint64_t wait_6th = 0;
-  uint64_t wait_4th = 0;
-  uint64_t wait_2nd = 0;
-
     int misses;
 
     float timer = 0.0;
@@ -212,15 +207,14 @@ struct Ratchets : Module {
 	static constexpr float masterLengthMax = 120.0f / bpmMin;// a length is a double period
 	static constexpr float masterLengthMin = 120.0f / bpmMax;// a length is a double period
 
-
-
     // Sequencer
     int current_seq_step = 0; // -1;
     bool gates[MAX_SEQUENCER_STEPS] = {};
     SchmittTrigger gateTriggers[MAX_SEQUENCER_STEPS];
-	const float clockValues[NUM_CLOCKS] = {0, 1, 2, 3, 4, 5, 6, 7};  // Used to force integer selection
+	const float clockValues[NUM_CLOCKS+1] = {0, 1, 2, 3, 4, 5, 6, 7, 7};  // Used to force integer selection  // TODO: Remove extra step
 	int seqClockUsed1[MAX_SEQUENCER_STEPS];
 	int seqClockUsed2[MAX_SEQUENCER_STEPS];
+	float bernouli_value;
 
   Ratchets() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
     for (int i = 1; i < MAX_SEQUENCER_STEPS; i++) {
@@ -280,7 +274,6 @@ struct Ratchets : Module {
 
     float getBPM() {
       bool rising = inputs[GATE_INPUT].value >= 1.0f && old_gate_value <0.1f;  // TODO: Zero?
-
       if (rising) {
         if (waiting_for_1st_tick) {
             tick1_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -296,10 +289,6 @@ struct Ratchets : Module {
             // std::cout << " BPM: " << BPM << "\n";
             waiting_for_2nd_tick = false;
             waiting_for_1st_tick = true;
-            wait_8th = duration_between_ticks / 8;
-            wait_6th = duration_between_ticks / 6;
-            wait_4th = duration_between_ticks / 4;
-            wait_2nd = duration_between_ticks / 2;
         }
       }
       return (BPM);
@@ -318,7 +307,7 @@ struct Ratchets : Module {
 		int numSteps = MAX_SEQUENCER_STEPS; // (int) clamp(roundf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value), 1.0f, 8.0f);
 		//phase = 0.f;
 		this->current_seq_step = index;
-		if (this->current_seq_step >= MAX_SEQUENCER_STEPS || this->current_seq_step>= params[STEPS_PARAM].value)
+		if (this->current_seq_step >= MAX_SEQUENCER_STEPS || this->current_seq_step >= params[STEPS_PARAM].value)
 			this->current_seq_step = 0;
 	}
 
@@ -351,6 +340,7 @@ struct Ratchets : Module {
 
 void Ratchets::step() {
   // bool gated = inputs[GATE_INPUT].value >= 1.0f;
+    bool rising = inputs[GATE_INPUT].value >= 1.0f && old_gate_value <0.1f;  // TODO: Zero?
     bool falling = inputs[GATE_INPUT].value < 0.1f && old_gate_value >=1.0f;  // TODO: Zero?
     // ---
     sampleRate = (double)engineGetSampleRate();
@@ -375,7 +365,9 @@ void Ratchets::step() {
                     syncRatios[i] = false;
                 }
             }
+            #ifdef DEBUG
             std::cout << "masterlength: " << masterLength << " sampleTime" << sampleTime << "\n";
+            #endif
             clk[0].setup(masterLength, 1, sampleTime);// must call setup before start. length = double_period
             clk[0].start2();
 
@@ -409,9 +401,11 @@ void Ratchets::step() {
         // Check RATCHET1 for each step in sequencer
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
             //seqClockUsed[i] = clockValues[params[RATCHETS1+i].value + 0]
-            //std::cout << "i=" << i << " value=" << params[RATCHETS1+i].value << "\n";
-            seqClockUsed1[i] = clockValues[(int)params[RATCHETS1+i].value];
+            //std::cout << "i=" << i << " value=" << params[RATCHETS1+i].value-1 << "\n";
+            seqClockUsed1[i] = clockValues[(int)params[RATCHETS1+i].value];   // TODO: Should be -1 !!!!
+            //std::cout << "2 " << i << " value=" << params[RATCHETS2+i].value-1 << "\n";
             seqClockUsed2[i] = clockValues[(int)params[RATCHETS2+i].value];
+
             //std::cout << "i=" << i << " clock=" << seqClockUsed[i] << "\n";
         }
 
@@ -421,30 +415,46 @@ void Ratchets::step() {
         // External clock
             if (clockTrigger.process(inputs[GATE_INPUT].value)) {
                 setIndex(current_seq_step + 1);
+                //if (current_seq_step == 0) {
+                    bernouli_value = randomUniform();
+                //}
             }
             gateIn = clockTrigger.isHigh();
 
+
             // Illuminate sequencer step LED
-            int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].value?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].value;
-            for (int i=0; i<use_steps; i++) {
+            for (int i=0; i<MAX_SEQUENCER_STEPS; i++) {
                 if (gateTriggers[i].process(params[STEP_LED_PARAM + i].value)) {
                     gates[i] = !gates[i];
                 }
-                lights[STEP_LED + i].setBrightnessSmooth((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.22) : (gates[i] ? 0.88 : 0.0));
             }
 
+            int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].value?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].value;
+            for (int i=0; i<use_steps; i++) {
+                lights[STEP_LED + i].setBrightnessSmooth((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.66) : (gates[i] ? 0.33 : 0.0));
+            }
+
+            if (use_steps<MAX_SEQUENCER_STEPS) {
+                for (int i=use_steps; i<MAX_SEQUENCER_STEPS; i++) {
+                    lights[STEP_LED + i].setBrightnessSmooth((gateIn && i == current_seq_step) ? 0.66 : (gates[i] ? 0.33 : 0.0));
+                }
+            }
+
+
             //std::cout << "Voltage:" << params[OCTAVE_SEQ+current_seq_step].value+params[CV_SEQ+current_seq_step].value << " Octave: " << params[OCTAVE_SEQ+current_seq_step].value << " CV: " << params[CV_SEQ+current_seq_step].value << "\n";
-            outputs[OUT_CV].value = gates[current_seq_step]?params[OCTAVE_SEQ+current_seq_step].value+params[CV_SEQ+current_seq_step].value:0.0;
+            if (outputs[OUT_CV].active) {
+                outputs[OUT_CV].value = gates[current_seq_step]?params[OCTAVE_SEQ+current_seq_step].value+params[CV_SEQ+current_seq_step].value:0.0;
+            }
 
             old_gate_value = inputs[GATE_INPUT].value;
-
             // TODO: Calculate based on sample rate instead?
-            now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+            //now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 
             //std::cout << "current_seq_step=" << current_seq_step << " clock=" << seqClockUsed[current_seq_step] << " isHigh()" << clk[seqClockUsed[current_seq_step]].isHigh(0.0, 0.5) << "\n";
             //std::cout << "Bernouli= " << ((randomUniform() > params[BERNOULI_GATE+current_seq_step].value) ? "A \n" : "B \n");
-            //--> outputs[OUT_GATE].value = gates[current_seq_step]?clk[(randomUniform() > params[BERNOULI_GATE+current_seq_step].value)?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
-            outputs[OUT_GATE].value = gates[current_seq_step]?clk[seqClockUsed1[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
+            //std::cout << "seqClockUsed1[current_seq_step] " << seqClockUsed1[current_seq_step] << " step " << current_seq_step << "\n";
+            //outputs[OUT_GATE].value = gates[current_seq_step]?clk[seqClockUsed1[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
+            outputs[OUT_GATE].value = gates[current_seq_step]?clk[(bernouli_value > params[BERNOULI_GATE+current_seq_step].value)?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
 
             deltaTime = engineGetSampleTime();
         }
