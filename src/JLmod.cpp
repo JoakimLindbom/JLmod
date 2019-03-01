@@ -1,17 +1,18 @@
 #include "JLmod.hpp"
-//#include "VAStateVariableFilter.h"
+
 
 Plugin *plugin;
 
-void init(rack::Plugin *p) {
+
+void init(Plugin *p) {
 	plugin = p;
-	p->slug = "JLmod";
-#ifdef VERSION
+	p->slug = TOSTRING(SLUG);
 	p->version = TOSTRING(VERSION);
-#endif
 	p->website = "https://github.com/JoakimLindbom/vcvrack";
 
-    // Utililites
-    //p->addModel(createModel<TimersWidget>("JLmod", "Timers", "Timers", UTILITY_TAG));
-    p->addModel(modelTimers);
+	// Add all Models defined throughout the plugin
+	p->addModel(modelMyModule);
+
+	// Any other plugin initialization may go here.
+	// As an alternative, consider lazy-loading assets and lookup tables when your module is created to reduce startup times of Rack.
 }
