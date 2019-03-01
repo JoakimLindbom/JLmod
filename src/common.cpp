@@ -20,3 +20,15 @@ std::stringstream format4display(float value){
     to_display2 << to_display.str().substr(0, 4);
     return to_display2;
 }
+
+
+SmallGreyKnobSnap::SmallGreyKnobSnap() {
+    //setSVG(SVG::load(assetPlugin(plugin,"res/Knob_28.svg")));
+    setSVG(SVG::load(assetPlugin(plugin,"res/RoundSmallBlackKnob.svg")));
+	snap = true;
+};
+
+SmallGreyKnob::SmallGreyKnob() {
+    //setSVG(SVG::load(assetPlugin(plugin,"res/Knob_28.svg")));
+    setSVG(SVG::load(assetPlugin(plugin,"res/RoundSmallBlackKnob.svg")));
+};

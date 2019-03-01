@@ -3,9 +3,12 @@
 #include <chrono>
 #include "dsp/digital.hpp"
 #include "JLmod.hpp"
+#include "common.hpp"
 //#include "clock.hpp"
 // Copyright (c) 2019 Joakim Lindbom
 #include <math.h>
+
+#undef DEBUG
 
 class Clock {
   double step;  // -1.0 when stopped, [0 to 2*period[ for clock steps (*2 is because of swing, so we do groups of 2 periods)
@@ -120,7 +123,7 @@ int Clock::isHigh(float swing, float pulseWidth, bool debug = false) {
 #define NUM_CLOCKS 8
 #define MAX_SEQUENCER_STEPS 8
 
-#define BOX_SIZE_X 150
+#define BOX_SIZE_X 240
 
 struct Ratchets : Module {
   enum ParamIds {
@@ -128,9 +131,9 @@ struct Ratchets : Module {
     STEPS_PARAM,                                // How many step to execute
     // Sequencer matrix
     ENUMS(STEP_LED_PARAM, MAX_SEQUENCER_STEPS), // Enable/disable step
-    ENUMS(RATCHES1, MAX_SEQUENCER_STEPS),       // How many sub gates to trigger
+    ENUMS(RATCHETS1, MAX_SEQUENCER_STEPS),      // How many sub gates to trigger
     ENUMS(BERNOULI_GATE, NUM_CLOCKS),           // Bernouly gate value - use RATCHET1 or RATCHET2 value?
-    ENUMS(RATCHES2, MAX_SEQUENCER_STEPS),       // How many sub gates to trigger
+    ENUMS(RATCHETS2, MAX_SEQUENCER_STEPS),      // How many sub gates to trigger
     ENUMS(OCTAVE_SEQ, MAX_SEQUENCER_STEPS),     // Output note: Octave
     ENUMS(CV_SEQ, MAX_SEQUENCER_STEPS),         // Output note: Note
     NUM_PARAMS
@@ -142,11 +145,9 @@ struct Ratchets : Module {
   enum OutputIds {
     OUT_GATE,                                   // Gate out
     OUT_CV,                                     // CV Out
-    ENUMS(SEQ_OUT_GATE, MAX_SEQUENCER_STEPS),
-    OUT_8TH,
-    OUT_6TH,
-    OUT_4TH,
-    OUT_2ND,
+    #ifdef DEBUG
+    ENUMS(OUT_DEBUG, MAX_SEQUENCER_STEPS),
+    #endif
     NUM_OUTPUTS
   };
   enum LightIds {
@@ -218,7 +219,8 @@ struct Ratchets : Module {
     bool gates[MAX_SEQUENCER_STEPS] = {};
     SchmittTrigger gateTriggers[MAX_SEQUENCER_STEPS];
 	const float clockValues[NUM_CLOCKS] = {0, 1, 2, 3, 4, 5, 6, 7};  // Used to force integer selection
-	int seqClockUsed[MAX_SEQUENCER_STEPS];
+	int seqClockUsed1[MAX_SEQUENCER_STEPS];
+	int seqClockUsed2[MAX_SEQUENCER_STEPS];
 
   Ratchets() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {
     for (int i = 1; i < MAX_SEQUENCER_STEPS; i++) {
@@ -241,7 +243,8 @@ struct Ratchets : Module {
   void onCreate() override {
     onReset();
     for (int i = 0; i< MAX_SEQUENCER_STEPS; i++) {
-        seqClockUsed[i] = 0;
+        seqClockUsed1[i] = 0;
+        seqClockUsed2[i] = 0;
     }
   }
 
@@ -315,7 +318,7 @@ struct Ratchets : Module {
 		int numSteps = MAX_SEQUENCER_STEPS; // (int) clamp(roundf(params[STEPS_PARAM].value + inputs[STEPS_INPUT].value), 1.0f, 8.0f);
 		//phase = 0.f;
 		this->current_seq_step = index;
-		if (this->current_seq_step >= MAX_SEQUENCER_STEPS)
+		if (this->current_seq_step >= MAX_SEQUENCER_STEPS || this->current_seq_step>= params[STEPS_PARAM].value)
 			this->current_seq_step = 0;
 	}
 
@@ -386,22 +389,16 @@ void Ratchets::step() {
                 int ratioDoubled = ratiosDoubled[i];
                 length = (2.0f * masterLength) / ((double)ratioDoubled);
                 iterations = ratioDoubled / (2l - (ratioDoubled % 2l));
-                std::cout << "iterations: " << iterations << " length: " << length << " sampleTime" << sampleTime << "\n";
+                //std::cout << "iterations: " << iterations << " length: " << length << " sampleTime" << sampleTime << "\n";
                 clk[i].setup(length, iterations, sampleTime);
                 clk[i].start2();
             }
             //delay[i - 1].write(clk[i].isHigh(1, pulseWidth[i]));
-            //outputs[CLK_OUTPUTS + i].value = delay[i - 1].read(delaySamples[i]) ? 10.0f : 0.0f;
+            #ifdef DEBUG
             for (int i=0; i<MAX_SEQUENCER_STEPS; i++) {
-                outputs[SEQ_OUT_GATE+i].value = clk[i].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
+                outputs[OUT_DEBUG+i].value = clk[i].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
             }
-//            outputs[OUT_GATE2].value = clk[1].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE3].value = clk[2].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE4].value = clk[3].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE5].value = clk[4].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE6].value = clk[5].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE7].value = clk[6].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
-//            outputs[OUT_GATE8].value = clk[7].isHigh(0.0, 0.5) ? 10.0f : 0.0f;
+            #endif
         }
 
         // Step clocks
@@ -411,9 +408,10 @@ void Ratchets::step() {
 
         // Check RATCHET1 for each step in sequencer
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-            //seqClockUsed[i] = clockValues[params[RATCHES1+i].value + 0]
-            //std::cout << "i=" << i << " value=" << params[RATCHES1+i].value << "\n";
-            seqClockUsed[i] = clockValues[(int)params[RATCHES1+i].value];
+            //seqClockUsed[i] = clockValues[params[RATCHETS1+i].value + 0]
+            //std::cout << "i=" << i << " value=" << params[RATCHETS1+i].value << "\n";
+            seqClockUsed1[i] = clockValues[(int)params[RATCHETS1+i].value];
+            seqClockUsed2[i] = clockValues[(int)params[RATCHETS2+i].value];
             //std::cout << "i=" << i << " clock=" << seqClockUsed[i] << "\n";
         }
 
@@ -426,42 +424,29 @@ void Ratchets::step() {
             }
             gateIn = clockTrigger.isHigh();
 
-        // Check row LED button
-//        for (int i=0; i<MAX_SEQUENCER_STEPS; i++) {
-//            if (params[STEP_LED_PARAM + i].value != 0) {
-//                std::cout << "i: " << i << " param: " << params[STEP_LED_PARAM + i].value << "\n";
-//                if (params[STEP_LED_PARAM + i].value == 1) {
-//
-//                }
-//            }
-//        }
             // Illuminate sequencer step LED
-            for (int i=0; i<MAX_SEQUENCER_STEPS; i++) {
+            int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].value?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].value;
+            for (int i=0; i<use_steps; i++) {
                 if (gateTriggers[i].process(params[STEP_LED_PARAM + i].value)) {
                     gates[i] = !gates[i];
                 }
-                lights[STEP_LED + i].setBrightnessSmooth((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.33) : (gates[i] ? 0.66 : 0.0));
+                lights[STEP_LED + i].setBrightnessSmooth((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.22) : (gates[i] ? 0.88 : 0.0));
             }
 
-            if (falling) {
-            //std::cout << "gate length=" << (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() - waiting_for_2nd_tick?tick1_ms:tick2_ms) << " ";
-            }
+            //std::cout << "Voltage:" << params[OCTAVE_SEQ+current_seq_step].value+params[CV_SEQ+current_seq_step].value << " Octave: " << params[OCTAVE_SEQ+current_seq_step].value << " CV: " << params[CV_SEQ+current_seq_step].value << "\n";
+            outputs[OUT_CV].value = gates[current_seq_step]?params[OCTAVE_SEQ+current_seq_step].value+params[CV_SEQ+current_seq_step].value:0.0;
 
             old_gate_value = inputs[GATE_INPUT].value;
 
             // TODO: Calculate based on sample rate instead?
             now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 
-            //std::cout << "seq_current_step=" << current_seq_step << " clock=" << seqClockUsed[current_seq_step] << " isHigh()" << clk[seqClockUsed[current_seq_step]].isHigh(0.0, 0.5) << "\n";
-            outputs[OUT_GATE].value = gates[current_seq_step]?clk[seqClockUsed[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
+            //std::cout << "current_seq_step=" << current_seq_step << " clock=" << seqClockUsed[current_seq_step] << " isHigh()" << clk[seqClockUsed[current_seq_step]].isHigh(0.0, 0.5) << "\n";
+            //std::cout << "Bernouli= " << ((randomUniform() > params[BERNOULI_GATE+current_seq_step].value) ? "A \n" : "B \n");
+            //--> outputs[OUT_GATE].value = gates[current_seq_step]?clk[(randomUniform() > params[BERNOULI_GATE+current_seq_step].value)?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
+            outputs[OUT_GATE].value = gates[current_seq_step]?clk[seqClockUsed1[current_seq_step]].isHigh(0.0, 0.5) ? 10.0f : 0.0f: 0.0f;
 
-            // Blink light at 1Hz
             deltaTime = engineGetSampleTime();
-            //std::cout << " deltaTime: " << deltaTime << " - sampleTime: " << sampleTime << " sampleRate:" << sampleRate << "\n";
-//            blinkPhase += deltaTime;
-//            if (blinkPhase >= 1.0f)
-//                blinkPhase -= 1.0f;
-//            lights[BLINK_LIGHT].value = (blinkPhase < 0.5f) ? 1.0f : 0.0f;
         }
     }
 
@@ -478,26 +463,30 @@ struct RatchetsWidget : ModuleWidget {
     addChild(Widget::create<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
     addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-    static constexpr float RowPosY = 36.0f;
+    static constexpr float RowPosY = 34.0f;
     static constexpr float BaseY = 50.0;
     for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-        addParam(createParam<LEDButton>(Vec(15 , BaseY + i * RowPosY- 4.4f), module, Ratchets::STEP_LED_PARAM + i, 0.0f, 1.0f, 0.0f));
-        addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(15 + 4.4f, BaseY + i * RowPosY), module, Ratchets::STEP_LED + i));
+        addParam(createParam<LEDButton>(Vec(15 , BaseY + i * RowPosY+3), module, Ratchets::STEP_LED_PARAM + i, 0.0f, 1.0f, 0.0f));
+        addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(15 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::STEP_LED + i));
 
-    	addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(33, BaseY + i * RowPosY), module, Ratchets::RATCHES1+i, 1.0, NUM_CLOCKS, 1.0));
-    	addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(63, BaseY + i * RowPosY), module, Ratchets::BERNOULI_GATE+i, 0.0, 1.0, 0.0));
-    	addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(93, BaseY + i * RowPosY), module, Ratchets::RATCHES2+i, 1.0, NUM_CLOCKS, 1.0));
-    	addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(123, BaseY + i * RowPosY), module, Ratchets::OCTAVE_SEQ+i, 1.0, 7.0, 1.0));
-    	addParam(ParamWidget::create<RoundSmallBlackKnob>(Vec(153, BaseY + i * RowPosY), module, Ratchets::CV_SEQ+i, 0.0, 10.0, 1.0));
+    	addParam(ParamWidget::create<SmallGreyKnobSnap>(Vec(33, BaseY + i * RowPosY), module, Ratchets::RATCHETS1+i, 1.0, NUM_CLOCKS, 1.0));
+    	addParam(ParamWidget::create<SmallGreyKnob>(Vec(63, BaseY + i * RowPosY), module, Ratchets::BERNOULI_GATE+i, 0.0, 1.0, 0.0));
+    	addParam(ParamWidget::create<SmallGreyKnobSnap>(Vec(93, BaseY + i * RowPosY), module, Ratchets::RATCHETS2+i, 1.0, NUM_CLOCKS, 1.0));
+    	addParam(ParamWidget::create<SmallGreyKnobSnap>(Vec(150, BaseY + i * RowPosY), module, Ratchets::OCTAVE_SEQ+i, 1.0, 7.0, 3.0));
+    	addParam(ParamWidget::create<SmallGreyKnob>(Vec(180, BaseY + i * RowPosY), module, Ratchets::CV_SEQ+i, 0.0, 1.0, 0.5));
 
-        addOutput(Port::create<PJ301MPort>(Vec(175, BaseY + i * RowPosY), Port::OUTPUT, module, Ratchets::OUT_GATE+i));
+        #ifdef DEBUG
+        addOutput(Port::create<PJ301MPort>(Vec(185, BaseY + i * RowPosY), Port::OUTPUT, module, Ratchets::OUT_DEBUG+i));
+        #endif
     }
+    // IMSmallKnobNotify
+    addInput(Port::create<PJ301MPort>(Vec(16, BaseY + 8 * RowPosY + 12), Port::INPUT, module, Ratchets::GATE_INPUT));
+    addParam(ParamWidget::create<SmallGreyKnobSnap>(Vec(50, BaseY + 8 * RowPosY + 13), module, Ratchets::STEPS_PARAM, 1.0, MAX_SEQUENCER_STEPS, MAX_SEQUENCER_STEPS));
+    addOutput(Port::create<PJ301MPort>(Vec(157, BaseY + 8 * RowPosY + 10), Port::OUTPUT, module, Ratchets::OUT_GATE));
+    addOutput(Port::create<PJ301MPort>(Vec(189, BaseY + 8 * RowPosY + 10), Port::OUTPUT, module, Ratchets::OUT_CV));
+    //addParam(ParamWidget::create<LEDButton>(Vec(60, BaseY + 8 * RowPosY), module, Ratchets::RUN_PARAM, 0.0f, 1.0f, 0.0f));
 
-    addInput(Port::create<PJ301MPort>(Vec(13, BaseY + 8 * RowPosY), Port::INPUT, module, Ratchets::GATE_INPUT));
-    addOutput(Port::create<PJ301MPort>(Vec(185, BaseY + 8 * RowPosY), Port::OUTPUT, module, Ratchets::OUT_GATE));
-    addParam(ParamWidget::create<LEDButton>(Vec(60, BaseY + 8 * RowPosY), module, Ratchets::RUN_PARAM, 0.0f, 1.0f, 0.0f));
-
-    addChild(ModuleLightWidget::create<MediumLight<RedLight>>(Vec(41, BaseY + 8 * RowPosY), module, Ratchets::BLINK_LIGHT));
+//    addChild(ModuleLightWidget::create<MediumLight<RedLight>>(Vec(41, BaseY + 8 * RowPosY), module, Ratchets::BLINK_LIGHT));
   }
 };
 
