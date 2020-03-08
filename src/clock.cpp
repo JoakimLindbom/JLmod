@@ -31,6 +31,7 @@ void Clock::setup(double lengthGiven, int iterationsGiven, double sampleTimeGive
 }
 
 void Clock::stepClock() {// here the clock was output on step "step", this function is called near end of module::process()
+    _tick = false;
     if (step >= 0.0) {// if active clock
         step += sampleTime;
         if ( (syncSrc != nullptr) && (iterations == 1) && (step > (length - guard)) ) {// if in sync region
@@ -42,6 +43,7 @@ void Clock::stepClock() {// here the clock was output on step "step", this funct
             if (step >= length) {// reached end iteration
                 iterations--;
                 step -= length;
+                _tick = true;
                 if (iterations <= 0)
                     reset();// frame done
             }
@@ -60,4 +62,8 @@ int Clock::isHigh() {
         return (step < (length * 0.5)) ? 1 : 0;
     }
     return (*resetClockOutputsHigh) ? 1 : 0;
+}
+
+bool Clock::Tick() {
+    return (_tick);
 }

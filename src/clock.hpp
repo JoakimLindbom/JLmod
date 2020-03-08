@@ -14,6 +14,7 @@ class Clock {
 	Clock* syncSrc = nullptr; // only subclocks will have this set to master clock
 	static constexpr double guard = 0.0005;// in seconds, region for sync to occur right before end of length of last iteration; sub clocks must be low during this period
 	bool *resetClockOutputsHigh;
+	bool _tick;
 	public:
 
 	Clock();
@@ -33,6 +34,7 @@ class Clock {
 	void applyNewLength(double lengthStretchFactor);
 
 	int isHigh();
+	bool Tick(); // True when pulse is rising
 
 };
 

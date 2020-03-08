@@ -171,6 +171,14 @@ struct RoganSmallOrange : Rogan {
     }
 };
 
+template <typename BASE>
+struct MuteLight : BASE {
+	MuteLight() {
+		this->box.size = mm2px(Vec(6.0f, 6.0f));
+	}
+};
+
+
 
 // General routines
 

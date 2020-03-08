@@ -12,7 +12,7 @@ int message_BPM;
 
 struct DebugExpander : Module {
 	enum OutputIds {
-		ENUMS(OUTPUTS, NUM_PORTS),
+		ENUMS(CLOCK_OUTPUTS, NUM_PORTS),
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -22,7 +22,7 @@ struct DebugExpander : Module {
 	};
 
 	// Message interchange
-	float leftMessages[2][9] = {};// messages from main module
+	float leftMessages[2][17] = {};// messages from main module
 
 	//int panelTheme;
 	unsigned int expanderRefreshCounter = 0;
@@ -48,15 +48,14 @@ struct DebugExpander : Module {
                 float *message = (float*) leftExpander.consumerMessage;
                 for (int i = 0; i < 8; i++) {
                     lights[LIGHTS+i].setBrightness(message[i]);
+                    outputs[CLOCK_OUTPUTS+i].setVoltage(message[i+9]);
                 }
                 message_BPM = (int)message[8];
-//                if (message_BPM == -1){
-//                    message_BPM=999;
-//                };
             }
             else {
                 // No mother module is connected.
                 lights[CONNECTED_LIGHT].setSmoothBrightness(0.f,0.3f);
+                message_BPM = -1;
             }
 		}// expanderRefreshCounter
 	}// process()
@@ -110,7 +109,7 @@ struct DebugExpanderWidget : ModuleWidget {
         addChild(createLight<MediumLight<GreenLight>>(Vec(BaseX+3, 12), module, DebugExpander::CONNECTED_LIGHT));
 
         for (int i=0; i<NUM_PORTS; i++) {
-            addOutput(createOutput<PJ301MPort>(Vec(BaseX, BaseY + i * RowPosY), module, DebugExpander::OUTPUTS+i));
+            addOutput(createOutput<PJ301MPort>(Vec(BaseX, BaseY + i * RowPosY), module, DebugExpander::CLOCK_OUTPUTS+i));
             addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+40, BaseY + 5 + i * RowPosY), module, DebugExpander::LIGHTS+i));
         }
 
