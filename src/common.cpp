@@ -23,12 +23,27 @@ std::stringstream format4display(float value){
 
 
 SmallGreyKnobSnap::SmallGreyKnobSnap() {
-    //setSVG(SVG::load(assetPlugin(plugin,"res/Knob_28.svg")));
-    setSVG(SVG::load(assetPlugin(plugin,"res/RoundSmallBlackKnob.svg")));
+    //setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/Knob_28.svg")));
+    setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/RoundSmallBlackKnob.svg")));
 	snap = true;
 };
 
 SmallGreyKnob::SmallGreyKnob() {
-    //setSVG(SVG::load(assetPlugin(plugin,"res/Knob_28.svg")));
-    setSVG(SVG::load(assetPlugin(plugin,"res/RoundSmallBlackKnob.svg")));
+    //setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/Knob_28.svg")));
+    setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/RoundSmallBlackKnob.svg")));
 };
+
+NVGcolor prepareDisplay(NVGcontext *vg, Rect *box, int fontSize) {
+	NVGcolor backgroundColor = nvgRGB(0x38, 0x38, 0x38);
+	NVGcolor borderColor = nvgRGB(0x10, 0x10, 0x10);
+	nvgBeginPath(vg);
+	nvgRoundedRect(vg, 0.0, 0.0, box->size.x, box->size.y, 5.0);
+	nvgFillColor(vg, backgroundColor);
+	nvgFill(vg);
+	nvgStrokeWidth(vg, 1.0);
+	nvgStrokeColor(vg, borderColor);
+	nvgStroke(vg);
+	nvgFontSize(vg, fontSize);
+	NVGcolor textColor = nvgRGB(0xaf, 0xd2, 0x2c);
+	return textColor;
+}

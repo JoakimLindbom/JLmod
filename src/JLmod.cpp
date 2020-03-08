@@ -1,18 +1,17 @@
 #include "JLmod.hpp"
 
 
-Plugin *plugin;
+Plugin *pluginInstance;
 
 
 void init(Plugin *p) {
-	plugin = p;
-	p->slug = TOSTRING(SLUG);
-	p->version = TOSTRING(VERSION);
-	p->website = "https://github.com/JoakimLindbom/vcvrack";
+	pluginInstance = p;
 
-	// Add all Models defined throughout the plugin
+	// Add all Models defined throughout the pluginInstance
 	p->addModel(modelRatchets);
+	//p->addModel(modelTimers);
+	p->addModel(modelDebugExpander);
 
-	// Any other plugin initialization may go here.
+	// Any other pluginInstance initialization may go here.
 	// As an alternative, consider lazy-loading assets and lookup tables when your module is created to reduce startup times of Rack.
 }

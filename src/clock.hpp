@@ -2,28 +2,38 @@
 #define CLOCK_HPP
 
 class Clock {
-  double step;  // -1.0 when stopped, [0 to 2*period[ for clock steps (*2 is because of swing, so we do groups of 2 periods)
-  double length;  // double period
-  double sampleTime;
-  int iterations;  // run this many double periods before going into sync if sub-clock
-  static constexpr double guard = 0.0005;  // in seconds, region for sync to occur right before end of length of last iteration; sub clocks must be low during this period
-  bool *resetClockOutputsHigh;
+	// The -1.0 step is used as a reset state every period so that
+	//   lengths can be re-computed; it will stay at -1.0 when a clock is inactive.
+	// a clock frame is defined as "length * iterations + syncWait", and
+	//   for master, syncWait does not apply and iterations = 1
 
-  public:
-  Clock();
-  void reset2();
-  bool isReset2();
-  double getStep();
-  void setup(Clock* clkGiven, bool *resetClockOutputsHighPtr);
-  void start2();
+	double step;// -1.0 when stopped, [0 to period[ for clock steps
+	double length;// period
+	double sampleTime;
+	int iterations;// run this many periods before going into sync if sub-clock
+	Clock* syncSrc = nullptr; // only subclocks will have this set to master clock
+	static constexpr double guard = 0.0005;// in seconds, region for sync to occur right before end of length of last iteration; sub clocks must be low during this period
+	bool *resetClockOutputsHigh;
+	public:
 
-  void setup(double lengthGiven, int iterationsGiven, double sampleTimeGiven);
+	Clock();
+	void reset();
+	bool isReset();
 
-  void stepClock();
+	double getStep();
 
-  void applyNewLength(double lengthStretchFactor);
+	void construct(Clock* clkGiven, bool *resetClockOutputsHighPtr);
 
-  int isHigh(float swing, float pulseWidth);
+	void start();
+
+	void setup(double lengthGiven, int iterationsGiven, double sampleTimeGiven);
+
+	void stepClock();
+
+	void applyNewLength(double lengthStretchFactor);
+
+	int isHigh();
+
 };
 
 #endif
