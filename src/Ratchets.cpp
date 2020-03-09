@@ -186,11 +186,17 @@ struct Ratchets : Module {
     json_t *dataToJson() override {
 		json_t *rootJ = json_object();
 
-		// panelTheme
 		//json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
 
-		// running
-		//json_object_set_new(rootJ, "running", json_boolean(running));
+		// Sequencer steps
+        //char key[10];
+		json_t* gatesJ = json_array();
+		for (int i=0;i<MAX_SEQUENCER_STEPS; i++) {
+		//    sprintf(key, "SEQ-1-%0d", i);
+		//    json_object_set_new(rootJ, key, json_boolean(gates[i]));
+		    json_array_insert_new(gatesJ, i, json_integer((int) gates[i]));
+		}
+		json_object_set_new(rootJ, "gates", gatesJ);
 
 		return rootJ;
 	}
@@ -202,18 +208,27 @@ struct Ratchets : Module {
 		//if (panelThemeJ)
 		//	panelTheme = json_integer_value(panelThemeJ);
 
-		// running
-		//json_t *runningJ = json_object_get(rootJ, "running");
-		//if (runningJ)
-		//	running = json_is_true(runningJ);
+		// Sequencer steps
+        //char key[10];
+		//for (int i=0;i<MAX_SEQUENCER_STEPS; i++) {
+		//    sprintf(key, "SEQ-1-%0d", i);
+		//    json_t *on = json_object_get(rootJ, key);
+        //    if (on)
+        //        gates[i] = json_is_true(on);
+        //}
+		json_t* gatesJ = json_object_get(rootJ, "gates");
+		if (gatesJ) {
+			for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
+				json_t* gateJ = json_array_get(gatesJ, i);
+				if (gateJ)
+					gates[i] = !!json_integer_value(gateJ); //TODO: Check !!
+			}
+		}
 
 		resetNonJson(true);
 	}
 
-
   // For more advanced Module features, read Rack's engine.hpp header file
-  // - dataToJson, dataFromJson: serialization of internal data
-  // - onSampleRateChange: event triggered by a change of sample rate
   // - onReset, onRandomize, onCreate, onDelete: implements special behavior when user clicks these from the context menu
 
     void onCreate() { // override {
