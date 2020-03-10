@@ -15,6 +15,9 @@
 
 #define BOX_SIZE_X 240
 
+// TODO: Add panner output and stereo + quad pan options. Stereo spread?
+// TODO: Separate base clocks (w. option) - one drive sequencer, one drives ratchets speed
+
 struct Ratchets : Module {
     enum ParamIds {
     RUN_PARAM,                                  // Run sequencer?
@@ -29,7 +32,10 @@ struct Ratchets : Module {
     RESET_PARAM,                                // Reset button
     BPMMODE_DOWN_PARAM,
     BPMMODE_UP_PARAM,
-    OCTAVE_PARAM,                               // Base octave
+    OCTAVE_PARAM,                                      // Base octave
+    ENUMS(STEP_PAN_PARAM, MAX_SEQUENCER_STEPS),        // Enable/disable panning for this step
+    ENUMS(STEP_PAN_SPREAD_PARAM, MAX_SEQUENCER_STEPS), // Panning left-right spread for this step
+    PAN_UNI_BI_SWITCH,                                 // Select Unipolar or bipolar output for the stereo panner
     NUM_PARAMS
     };
     enum InputIds {
@@ -42,17 +48,19 @@ struct Ratchets : Module {
     enum OutputIds {
     OUT_GATE,                                   // Gate out
     OUT_CV,                                     // CV Out
+    SPAN_OUT,                                   // Stereo pan out
     NUM_OUTPUTS
     };
     enum LightIds {
     RUN_LIGHT,
     ENUMS(STEP_LED, MAX_SEQUENCER_STEPS),
+    ENUMS(PAN_LED, MAX_SEQUENCER_STEPS),
     BPM_LOCKED,
     NUM_LIGHTS
     };
 
     // Expander
-	float rightMessages[2][17] = {};// messages from expander
+	float rightMessages[2][25] = {};// messages from expander
 
     float phase = 0.0;
     float blinkPhase = 0.0;
@@ -129,12 +137,15 @@ struct Ratchets : Module {
     // Sequencer
     int current_seq_step = 0; // -1;
     bool gates[MAX_SEQUENCER_STEPS] = {};
+    bool pan[MAX_SEQUENCER_STEPS] = {};
     dsp::SchmittTrigger gateTriggers[MAX_SEQUENCER_STEPS];
+    dsp::SchmittTrigger panTriggers[MAX_SEQUENCER_STEPS];
 	const float clockValues[NUM_CLOCKS+1] = {0, 1, 2, 3, 4, 5, 6, 7, 8};  // Used to force integer selection  // TODO: Remove extra step
 	int seqClockUsed1[MAX_SEQUENCER_STEPS];
 	int seqClockUsed2[MAX_SEQUENCER_STEPS];
 	float bernouli_value;
 	float base_octave = 0.0f;
+	float span_pos = -5.0f; // Stereo pan position, start left
 
     Ratchets() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -146,10 +157,14 @@ struct Ratchets : Module {
             configParam(Ratchets::RATCHETS1+i, 1.0, NUM_CLOCKS, 1.0, "Ratchet patter 1");
             configParam(Ratchets::BERNOULI_GATE+i, 0.0, 1.0, 0.0, "Probability for pattern 2");
             configParam(Ratchets::RATCHETS2+i, 1.0, NUM_CLOCKS, 1.0, "Ratchet patter 2");
+            configParam(Ratchets::STEP_PAN_PARAM + i, 0.0f, 1.0f, 0.0f, "Pan step?");
+            configParam(Ratchets::STEP_PAN_SPREAD_PARAM + i, 0.0f, 1.0f, 0.001f, "Pan spread left-right");
             configParam(Ratchets::OCTAVE_SEQ+i, 1.0, 7.0, 3.0, "Octave out knob");
             configParam(Ratchets::CV_SEQ+i, 0.0, 1.0, 0.01, "CV out knob");
         }
         configParam(Ratchets::OCTAVE_PARAM, 1.0, 10.0, 1.0, "Base octave");
+        configParam(Ratchets::PAN_UNI_BI_SWITCH, 0.0, 1.0, 1.0, "Uni or bipolar");
+        params[PAN_UNI_BI_SWITCH].setValue(0.0f); // Bi-polar TODO: Move to onInit??
 
         for (int i=0; i<NUM_CLOCKS; i++) {
             clk[i].construct(i==0?NULL:&clk[0], &resetClockOutputsHigh);
@@ -171,6 +186,7 @@ struct Ratchets : Module {
 			for (int i = 0; i < 8; i++) {
 				message[i] = clk[i].isHigh()?1.0f:0.0f;     // LEDs
 				message[i+9] = clk[i].isHigh()?10.0f:0.0f;  // Outputs
+				message[i+17] = current_seq_step==i?10.0f:0.0f;  // Running step
 			}
 			//message[8] = (float)BPM;
 			message[8] = (60.0f / masterLength) + 0.5f;     // BPM
@@ -183,7 +199,7 @@ struct Ratchets : Module {
         return ( ((timer - mult*seconds) * (timer - mult*seconds) / (seconds*seconds) < 0.2 ) && misses < 4);
     }
 
-    json_t *dataToJson() override {
+    json_t *dataToJson() override { //TODO: Add pan
 		json_t *rootJ = json_object();
 
 		//json_object_set_new(rootJ, "panelTheme", json_integer(panelTheme));
@@ -271,6 +287,7 @@ struct Ratchets : Module {
     void onRandomize() override {
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
             gates[i] = (random::uniform() > 0.5f);
+            pan[i] = (random::uniform() > 0.5f);
         }
     }
 
@@ -550,7 +567,12 @@ void Ratchets::process(const ProcessArgs& args) {
         if (gateTriggers[i].process(params[STEP_LED_PARAM + i].getValue())) {
             gates[i] = !gates[i];
         }
+        if (panTriggers[i].process(params[STEP_PAN_PARAM + i].getValue())) {
+            pan[i] = !pan[i];
+        }
+        lights[PAN_LED + i].setSmoothBrightness(pan[i] ? 1.0f :0.0f, 0.0f);  // TODO: Move
     }
+
 
 
     int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].getValue()?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].getValue();
@@ -565,11 +587,28 @@ void Ratchets::process(const ProcessArgs& args) {
 
     //std::cout << "Voltage:" << params[OCTAVE_SEQ+current_seq_step].getValue()+params[CV_SEQ+current_seq_step].getValue() << " Octave: " << params[OCTAVE_SEQ+current_seq_step].getValue() << " CV: " << params[CV_SEQ+current_seq_step].getValue() << "\n";
     if (outputs[OUT_CV].isConnected()) {
-        //std::cout << "octave " << base_octave << "\n";
         outputs[OUT_CV].setVoltage(gates[current_seq_step]?params[OCTAVE_SEQ+current_seq_step].getValue()+params[CV_SEQ+current_seq_step].getValue() + base_octave:0.0);
     }
 
-    //old_gate_value = inputs[BPM_INPUT].getVoltage();
+    if (outputs[SPAN_OUT].isConnected() && gates[current_seq_step] && pan[current_seq_step]) {
+        if (span_pos == 0.0f) {
+            span_pos = 5.0f; // TODO: Check softer - 7.5?
+        }
+        //span_pos = (random::uniform()-0.5f)*10.0f; // Random spread
+        //span_pos = random::uniform()>0.5f?-10.0f:10.0f; // Random left/right
+        if (clk[(bernouli_value > params[BERNOULI_GATE+current_seq_step].getValue())?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].Tick()) {
+            span_pos *=-1.0f;
+            //std::cout << "pos: " << span_pos*params[STEP_PAN_SPREAD_PARAM+current_seq_step].getValue() << "\n";
+        }
+        outputs[SPAN_OUT].setVoltage(span_pos*params[STEP_PAN_SPREAD_PARAM+current_seq_step].getValue()+(int(params[PAN_UNI_BI_SWITCH].getValue())==1?5.0f:0.0f));
+        //std::cout << "spread: " << params[STEP_PAN_SPREAD_PARAM+current_seq_step].getValue() << "\n";
+        //std::cout << "pos: " << span_pos*params[STEP_PAN_SPREAD_PARAM+current_seq_step].getValue() << "uni/bi: " << (int(params[PAN_UNI_BI_SWITCH].getValue())==0?5:0) << "\n";
+        //std::cout << "pos: " << span_pos*params[STEP_PAN_SPREAD_PARAM+current_seq_step].getValue() << "\n";
+    } else {
+        span_pos = 0.0f;
+        outputs[SPAN_OUT].setVoltage(0.0f);
+    }
+
 
     if (gateIn) {
         outputs[OUT_GATE].setVoltage(gates[current_seq_step]?clk[(bernouli_value > params[BERNOULI_GATE+current_seq_step].getValue())?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].isHigh() ? 10.0f : 0.0f: 0.0f);
@@ -800,14 +839,19 @@ struct RatchetsWidget: ModuleWidget {
         static constexpr float RowPosY = 29.0f;
         static constexpr float BaseY = 79.0;
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-            addParam(createParam<LEDButton>(Vec(15 , BaseY + i * RowPosY+3), module, Ratchets::STEP_LED_PARAM + i));
-            addChild(createLight<MediumLight<GreenLight>>(Vec(15 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::STEP_LED + i));
+            addParam(createParam<smallLEDButton>(Vec(15 , BaseY + i * RowPosY+3), module, Ratchets::STEP_LED_PARAM + i));
+            addChild(createLight<SmallLight<GreenLight>>(Vec(15 + 2.2f, BaseY + i * RowPosY + 2.2f+3), module, Ratchets::STEP_LED + i));
 
             addParam(createParam<RoganSmallBlueSnap>(Vec(35, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS1+i));
-            addParam(createParam<RoganSmallRed>(Vec(63, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
-            addParam(createParam<RoganSmallBlueSnap >(Vec(93, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS2+i));
-            addParam(createParam<RoganSmallGreenSnap>(Vec(150, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
-            addParam(createParam<RoganSmallGreen>(Vec(180, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::CV_SEQ+i));
+            addParam(createParam<RoganSmallRed>(Vec(61, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
+            addParam(createParam<RoganSmallBlueSnap >(Vec(89, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS2+i));
+
+            addParam(createParam<LEDButton>(Vec(115 , BaseY + i * RowPosY+3), module, Ratchets::STEP_PAN_PARAM + i));
+            addChild(createLight<SmallLight<GreenLight>>(Vec(115 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::PAN_LED + i));
+            addParam(createParam<RoganSmallBlue>(Vec(140, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
+
+            addParam(createParam<RoganSmallGreenSnap>(Vec(165, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
+            addParam(createParam<RoganSmallGreen>(Vec(190, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::CV_SEQ+i));
         }
 
 
@@ -815,6 +859,10 @@ struct RatchetsWidget: ModuleWidget {
         static constexpr float LastrowY = 323.0;
         addInput(createInput<PJ301MPort>(Vec(19,LastrowY ), module, Ratchets::OCT_INPUT));
         addParam(createParam<RoganSmallBlueSnap>(Vec(51,LastrowY+2), module, Ratchets::OCTAVE_PARAM));
+
+        addParam(createParam<CKSS>(Vec(93, LastrowY-3), module, Ratchets::PAN_UNI_BI_SWITCH));
+        addOutput(createOutput<PJ301MPort>(Vec(119, LastrowY), module, Ratchets::SPAN_OUT));
+
         addOutput(createOutput<PJ301MPort>(Vec(149, LastrowY), module, Ratchets::OUT_GATE));
         addOutput(createOutput<PJ301MPort>(Vec(182, LastrowY), module, Ratchets::OUT_CV));
   }
