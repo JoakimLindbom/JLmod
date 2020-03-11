@@ -171,6 +171,13 @@ struct RoganSmallOrange : Rogan {
     }
 };
 
+struct smallLEDButton : app::SvgSwitch {
+	smallLEDButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::system("res/smallLEDButton.svg")));
+	}
+};
+
 template <typename BASE>
 struct MuteLight : BASE {
 	MuteLight() {

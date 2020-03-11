@@ -13,6 +13,7 @@ int message_BPM;
 struct DebugExpander : Module {
 	enum OutputIds {
 		ENUMS(CLOCK_OUTPUTS, NUM_PORTS),
+		ENUMS(STEP_OUTPUTS, NUM_PORTS),
 		NUM_OUTPUTS
 	};
 	enum LightIds {
@@ -22,7 +23,7 @@ struct DebugExpander : Module {
 	};
 
 	// Message interchange
-	float leftMessages[2][17] = {};// messages from main module
+	float leftMessages[2][25] = {};// messages from main module
 
 	//int panelTheme;
 	unsigned int expanderRefreshCounter = 0;
@@ -47,8 +48,9 @@ struct DebugExpander : Module {
                 // Get consumer message
                 float *message = (float*) leftExpander.consumerMessage;
                 for (int i = 0; i < 8; i++) {
-                    lights[LIGHTS+i].setBrightness(message[i]);
-                    outputs[CLOCK_OUTPUTS+i].setVoltage(message[i+9]);
+                    lights[LIGHTS+i].setBrightness(message[i]);        // Clocks - LEDs
+                    outputs[CLOCK_OUTPUTS+i].setVoltage(message[i+9]); // Clocks - Gates
+                    outputs[STEP_OUTPUTS+i].setVoltage(message[i+17]); // Sequencer Steps
                 }
                 message_BPM = (int)message[8];
             }
@@ -102,21 +104,22 @@ struct DebugExpanderWidget : ModuleWidget {
 		//addChild(createDynamicWidget<IMScrew>(Vec(box.size.x-30, 365), module ? &module->panelTheme : NULL));
 
 		// Expansion module
-		static const int BaseY = 77;
+		static const int BaseY = 100;
 		static const int RowPosY = 30;
-		static const int BaseX = 10;
+		static const int BaseX = 13;
 
         addChild(createLight<MediumLight<GreenLight>>(Vec(BaseX+3, 12), module, DebugExpander::CONNECTED_LIGHT));
 
         for (int i=0; i<NUM_PORTS; i++) {
             addOutput(createOutput<PJ301MPort>(Vec(BaseX, BaseY + i * RowPosY), module, DebugExpander::CLOCK_OUTPUTS+i));
-            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+40, BaseY + 5 + i * RowPosY), module, DebugExpander::LIGHTS+i));
+            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+35, BaseY + 7 + i * RowPosY), module, DebugExpander::LIGHTS+i));
+            addOutput(createOutput<PJ301MPort>(Vec(BaseX+73, BaseY + i * RowPosY), module, DebugExpander::STEP_OUTPUTS+i));
         }
 
         // BPM display
 		BpmDisplayWidget *bpmDisplay = new BpmDisplayWidget();
 		bpmDisplay->box.size = Vec(55, 30);// 3 characters
-		bpmDisplay->box.pos = Vec((30 + 75) / 2 - bpmDisplay->box.size.x / 2 - 8, 48 - bpmDisplay->box.size.y / 2);
+		bpmDisplay->box.pos = Vec((175) / 2 - bpmDisplay->box.size.x / 2 - 8, 48 - bpmDisplay->box.size.y / 2);
 		bpmDisplay->module = module;
 		addChild(bpmDisplay);
 

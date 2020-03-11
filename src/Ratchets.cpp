@@ -15,7 +15,7 @@
 
 #define BOX_SIZE_X 240
 
-// TODO: Add panner output and stereo + quad pan options. Stereo spread?
+// TODO: Add quad pan options.
 // TODO: Separate base clocks (w. option) - one drive sequencer, one drives ratchets speed
 
 struct Ratchets : Module {
@@ -188,7 +188,6 @@ struct Ratchets : Module {
 				message[i+9] = clk[i].isHigh()?10.0f:0.0f;  // Outputs
 				message[i+17] = current_seq_step==i?10.0f:0.0f;  // Running step
 			}
-			//message[8] = (float)BPM;
 			message[8] = (60.0f / masterLength) + 0.5f;     // BPM
 			// Flip messages at the end of the timestep
 			rightExpander.module->leftExpander.messageFlipRequested = true;
@@ -528,7 +527,6 @@ void Ratchets::process(const ProcessArgs& args) {
             clk[0].setup(masterLength, 1, sampleTime);// must call setup before start. length = double_period
             clk[0].start();
         }
-        //clkOutputs[0] = clk[0].isHigh() ? 10.0f : 0.0f;
 
         // Sub clocks
         for (int i = 1; i < MAX_SEQUENCER_STEPS; i++) {
@@ -548,18 +546,12 @@ void Ratchets::process(const ProcessArgs& args) {
                 clk[i].setup(length, iterations, sampleTime);
                 clk[i].start();
             }
-            //clkOutputs[i] = clk[i].isHigh() ? 10.0f : 0.0f;
         }
 
         // Step clocks
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++)
             clk[i].stepClock();
     }
-
-    // outputs
-    //for (int i = 0; i < 4; i++) {
-      //  outputs[CLK_OUTPUTS + i].setVoltage(clkOutputs[i]);
-   // }
 
     bool gateIn = true; // TODO: Remove
 
@@ -648,8 +640,6 @@ void Ratchets::process(const ProcessArgs& args) {
 /*
 void Ratchets::xx(){
 
-        BPM = getBPM();
-
         bool rising = inputs[BPM_INPUT].getVoltage() >= 1.0f && old_gate_value <0.1f;  // TODO: replace with bpmDetectTrigger
         bool falling = inputs[BPM_INPUT].getVoltage() < 0.1f && old_gate_value >=1.0f;  // TODO: Zero?
         // ---
@@ -694,118 +684,9 @@ void Ratchets::xx(){
                     }
                 }
             }
-            // TODO: Check RUN_INPUT and PARAM_RUN!
-            if (running) {
-                extIntervalTime += sampleTime;
-                if (extIntervalTime > timeoutTime) {
-                    running = false;
-                    runPulse.trigger(0.001f);
-                    if (emitResetOnStopRun) {
-                        resetClocks(false);
-                        resetPulse.trigger(0.001f);
-                        //resetLight = 1.0f;
-                    }
-                }
-            }
-
-        }
-        // Check RATCHET1 for each step in sequencer
-        for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-            seqClockUsed1[i] = clockValues[(int)params[RATCHETS1+i].getValue()];   // TODO: Should be -1 !!!!
-            seqClockUsed2[i] = clockValues[(int)params[RATCHETS2+i].getValue()];
-        }
-
-    if (running && BPM_LOCKED) {
-        // See if clocks finished their prescribed number of iterations of double periods (and syncWait for sub) or
-        //    if they were forced reset and if so, recalc and restart them
-
-        // Master clock
-        if (clk[0].isReset()) {
-            // See if ratio knobs changed (or unitinialized)
-            for (int i = 1; i < NUM_CLOCKS; i++) {
-                if (syncRatios[i]) {// unused (undetermined state) for master
-                    clk[i].reset();// force reset (thus refresh) of that sub-clock
-                    ratiosDoubled[i] = getRatioDoubled(i);
-                    syncRatios[i] = false;
-                }
-            }
-            #ifdef DBG
-            std::cout << "masterlength: " << masterLength << " BPM: " << BPM << "\n";
-            #endif
-            clk[0].setup(masterLength, 1, sampleTime);// must call setup before start. length = double_period
-            clk[0].start();
-
-        }
-
-        // Step clocks
-        for (int i = 0; i < NUM_CLOCKS; i++) {
-            clk[i].stepClock();
-         }
-
-        bool gateIn = false;
-        if (inputs[BPM_INPUT].isConnected()) {
-            // External clock
-            if (clockTrigger.process(inputs[BPM_INPUT].getVoltage())) {
-                setIndex(current_seq_step + 1);
-                bernouli_value = random::uniform();
-            }
-
-            gateIn = clockTrigger.isHigh();
-
-            // Illuminate sequencer step LED
-            for (int i=0; i<MAX_SEQUENCER_STEPS; i++) {
-                if (gateTriggers[i].process(params[STEP_LED_PARAM + i].getValue())) {
-                    gates[i] = !gates[i];
-                }
-            }
-
-            int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].getValue()?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].getValue();
-            for (int i=0; i<use_steps; i++) {
-                lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.66) : (gates[i] ? 0.33 : 0.0), 0.3f);
-            }
-            if (use_steps<MAX_SEQUENCER_STEPS) {
-                for (int i=use_steps; i<MAX_SEQUENCER_STEPS; i++) {
-                    lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? 0.66 : (gates[i] ? 0.33 : 0.0), 0.3f);
-                }
-            }
-
-            //std::cout << "Voltage:" << params[OCTAVE_SEQ+current_seq_step].getValue()+params[CV_SEQ+current_seq_step].getValue() << " Octave: " << params[OCTAVE_SEQ+current_seq_step].getValue() << " CV: " << params[CV_SEQ+current_seq_step].getValue() << "\n";
-            if (outputs[OUT_CV].isConnected()) {
-                outputs[OUT_CV].setVoltage(gates[current_seq_step]?params[OCTAVE_SEQ+current_seq_step].getValue()+params[CV_SEQ+current_seq_step].getValue():0.0);
-            }
-
-            old_gate_value = inputs[BPM_INPUT].getVoltage();
-            // TODO: Calculate based on sample rate instead?
-            //now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-
-            //std::cout << "current_seq_step=" << current_seq_step << " clock=" << seqClockUsed[current_seq_step] << " isHigh()" << clk[seqClockUsed[current_seq_step]].isHigh(0.0, 0.5) << "\n";
-            //std::cout << "Bernouli= " << ((random::uniform() > params[BERNOULI_GATE+current_seq_step].getValue()) ? "A \n" : "B \n");
-            //std::cout << "seqClockUsed1[current_seq_step] " << seqClockUsed1[current_seq_step] << " step " << current_seq_step << "\n";
-            //outputs[OUT_GATE].setVoltage(gates[current_seq_step]?clk[seqClockUsed1[current_seq_step]].isHigh() ? 10.0f : 0.0f: 0.0f);
-            if (gateIn) {
-                outputs[OUT_GATE].setVoltage(gates[current_seq_step]?clk[(bernouli_value > params[BERNOULI_GATE+current_seq_step].getValue())?seqClockUsed1[current_seq_step]:seqClockUsed2[current_seq_step]].isHigh() ? 10.0f : 0.0f: 0.0f);
-            } else {
-                outputs[OUT_GATE].setVoltage(0.0f);
-            }
-
-            lights[RUN_LIGHT].setSmoothBrightness(1.f, 0.3f);
-
-            // Step clocks
-            for (int i = 0; i < NUM_CLOCKS; i++) {
-                clk[i].stepClock();
-             }
-
-            deltaTime = args.sampleTime;
-        } else { // Not running
-            lights[RUN_LIGHT].setSmoothBrightness(0.f, 0.3f);
         }
     }
-
-
-
-}
-*/
-
+} */
 
 struct RatchetsWidget: ModuleWidget {
     RatchetsWidget(Ratchets *module){
@@ -823,48 +704,47 @@ struct RatchetsWidget: ModuleWidget {
 
         // Inputs block
         static constexpr float InputsY = 40.0;
-        addInput(createInput<PJ301MPort>(Vec(19, InputsY), module, Ratchets::BPM_INPUT));
-        addInput(createInput<PJ301MPort>(Vec(49, InputsY), module, Ratchets::RESET_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(83, InputsY + smallRoganOffset), module, Ratchets::STEPS_PARAM));
+        addInput(createInput<PJ301MPort>(Vec(11, InputsY), module, Ratchets::BPM_INPUT));
+        addInput(createInput<PJ301MPort>(Vec(38, InputsY), module, Ratchets::RESET_INPUT));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(66, InputsY + smallRoganOffset), module, Ratchets::STEPS_PARAM));
 
-        addParam(createParamCentered<LEDBezel>(Vec(153, InputsY + LedButtonOffset), module, Ratchets::RESET_PARAM));
+        addParam(createParamCentered<LEDBezel>(Vec(130, InputsY + LedButtonOffset), module, Ratchets::RESET_PARAM));
         // Run LED
-        addParam(createParamCentered<LEDBezel>(Vec(189, InputsY + LedButtonOffset), module, Ratchets::RUN_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(189, InputsY + LedButtonOffset), module, Ratchets::RUN_LIGHT));
+        addParam(createParamCentered<LEDBezel>(Vec(158, InputsY + LedButtonOffset), module, Ratchets::RUN_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(156, InputsY + LedButtonOffset), module, Ratchets::RUN_LIGHT));
 
         //Lights
         //addChild(createLight<MediumLight<RedLight>>(Vec(33, InputsY+22), module, Ratchets::BPM_LOCKED));
 
         // Sequencer matrix block
-        static constexpr float RowPosY = 29.0f;
-        static constexpr float BaseY = 79.0;
+        static constexpr float RowPosY = 31.0f;
+        static constexpr float BaseY = 83.0;
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
             addParam(createParam<smallLEDButton>(Vec(15 , BaseY + i * RowPosY+3), module, Ratchets::STEP_LED_PARAM + i));
             addChild(createLight<SmallLight<GreenLight>>(Vec(15 + 2.2f, BaseY + i * RowPosY + 2.2f+3), module, Ratchets::STEP_LED + i));
 
-            addParam(createParam<RoganSmallBlueSnap>(Vec(35, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS1+i));
-            addParam(createParam<RoganSmallRed>(Vec(61, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
-            addParam(createParam<RoganSmallBlueSnap >(Vec(89, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS2+i));
+            addParam(createParam<RoganSmallBlueSnap>(Vec(27, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS1+i));
+            addParam(createParam<RoganSmallRed>(Vec(52, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
+            addParam(createParam<RoganSmallBlueSnap >(Vec(79, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS2+i));
 
-            addParam(createParam<LEDButton>(Vec(115 , BaseY + i * RowPosY+3), module, Ratchets::STEP_PAN_PARAM + i));
-            addChild(createLight<SmallLight<GreenLight>>(Vec(115 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::PAN_LED + i));
-            addParam(createParam<RoganSmallBlue>(Vec(140, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
+            addParam(createParam<LEDButton>(Vec(94 , BaseY + i * RowPosY+3), module, Ratchets::STEP_PAN_PARAM + i));
+            addChild(createLight<SmallLight<GreenLight>>(Vec(94 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::PAN_LED + i));
+            addParam(createParam<RoganSmallBlue>(Vec(105, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
 
-            addParam(createParam<RoganSmallGreenSnap>(Vec(165, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
-            addParam(createParam<RoganSmallGreen>(Vec(190, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::CV_SEQ+i));
+            addParam(createParam<RoganSmallGreenSnap>(Vec(125, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
+            addParam(createParam<RoganSmallGreen>(Vec(148, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::CV_SEQ+i));
         }
 
-
         // Last row - incl. outputs block
-        static constexpr float LastrowY = 323.0;
-        addInput(createInput<PJ301MPort>(Vec(19,LastrowY ), module, Ratchets::OCT_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(51,LastrowY+2), module, Ratchets::OCTAVE_PARAM));
+        static constexpr float LastrowY = 333.0;
+        addInput(createInput<PJ301MPort>(Vec(12,LastrowY ), module, Ratchets::OCT_INPUT));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(38,LastrowY+2), module, Ratchets::OCTAVE_PARAM));
 
-        addParam(createParam<CKSS>(Vec(93, LastrowY-3), module, Ratchets::PAN_UNI_BI_SWITCH));
-        addOutput(createOutput<PJ301MPort>(Vec(119, LastrowY), module, Ratchets::SPAN_OUT));
+        addParam(createParam<CKSS>(Vec(71, LastrowY-1), module, Ratchets::PAN_UNI_BI_SWITCH));
+        addOutput(createOutput<PJ301MPort>(Vec(93, LastrowY), module, Ratchets::SPAN_OUT));
 
-        addOutput(createOutput<PJ301MPort>(Vec(149, LastrowY), module, Ratchets::OUT_GATE));
-        addOutput(createOutput<PJ301MPort>(Vec(182, LastrowY), module, Ratchets::OUT_CV));
+        addOutput(createOutput<PJ301MPort>(Vec(125, LastrowY), module, Ratchets::OUT_GATE));
+        addOutput(createOutput<PJ301MPort>(Vec(146, LastrowY), module, Ratchets::OUT_CV));
   }
 };
 
