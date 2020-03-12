@@ -1,4 +1,5 @@
 #include "clock.hpp"
+#include <functional>
 
 Clock::Clock() {
     reset();
@@ -15,9 +16,22 @@ double Clock::getStep() {
     return step;
 }
 
+void Clock::setSampleRate(double inSampleRate) {
+    sampleRate = inSampleRate; // TODO: Cascade to sub clocks. Needed???
+}
+
 void Clock::construct(Clock* clkGiven, bool *resetClockOutputsHighPtr) {
     syncSrc = clkGiven;
     resetClockOutputsHigh = resetClockOutputsHighPtr;
+}
+
+void Clock::addSubClock(Clock* subClock) {
+    //subClocks.push_back(subClock);
+    if (numSubClocks < 32 ){
+        numSubClocks++;
+        //subClocks[numSubClocks] = subClock;
+        std::cout << "size: " << numSubClocks << "\n";
+    }
 }
 
 void Clock::start() {
@@ -29,6 +43,13 @@ void Clock::setup(double lengthGiven, int iterationsGiven, double sampleTimeGive
     iterations = iterationsGiven;
     sampleTime = sampleTimeGiven;
 }
+
+void Clock::process() { // Refactored code from calling
+
+
+
+}
+
 
 void Clock::stepClock() {// here the clock was output on step "step", this function is called near end of module::process()
     _tick = false;

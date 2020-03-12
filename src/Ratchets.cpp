@@ -15,8 +15,10 @@
 
 #define BOX_SIZE_X 240
 
-// TODO: Add quad pan options.
+// TODO: Add quad pan options. Pan: Start left/right for each step. Different colour on LED
 // TODO: Separate base clocks (w. option) - one drive sequencer, one drives ratchets speed
+// TODO: Add RUN input
+// TODO: Add BPM detect
 
 struct Ratchets : Module {
     enum ParamIds {
@@ -56,6 +58,7 @@ struct Ratchets : Module {
     ENUMS(STEP_LED, MAX_SEQUENCER_STEPS),
     ENUMS(PAN_LED, MAX_SEQUENCER_STEPS),
     BPM_LOCKED,
+    RESET_LIGHT,
     NUM_LIGHTS
     };
 
@@ -77,6 +80,7 @@ struct Ratchets : Module {
 	bool scheduledReset = false;
 	long cantRunWarning = 0l;// 0 when no warning, positive downward step counter timer when warning
 	RefreshCounter refresh;
+    float resetLight = 0.0f;
 
     static constexpr float pulseWidth = 0.011f;  // 11 ms used by SEQ-3 for gate
 
@@ -99,6 +103,7 @@ struct Ratchets : Module {
     float oldBPM=0.0;
     bool BPM_locked = false;
     dsp::SchmittTrigger gateTrigger;
+    dsp::SchmittTrigger runTrigger;
     dsp::SchmittTrigger clockTrigger;
 
 	bool bpmDetectionMode;
@@ -119,6 +124,8 @@ struct Ratchets : Module {
     // Clocks related
     bool resetClockOutputsHigh;
     Clock clk[MAX_SEQUENCER_STEPS];
+    //Clock seq_clk;
+    //Clock rat_clk;
     const float ratioValues[NUM_CLOCKS] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
     static const int bpmMax = 300;
     static const int bpmMin = 30;
@@ -131,7 +138,7 @@ struct Ratchets : Module {
     dsp::PulseGenerator resetPulse;
     dsp::PulseGenerator runPulse;
 	Trigger runButtonTrigger;
-	TriggerRiseFall runInputTrigger;
+	Trigger runInputTrigger;
 
 
     // Sequencer
@@ -165,6 +172,9 @@ struct Ratchets : Module {
         configParam(Ratchets::OCTAVE_PARAM, 1.0, 10.0, 1.0, "Base octave");
         configParam(Ratchets::PAN_UNI_BI_SWITCH, 0.0, 1.0, 1.0, "Uni or bipolar");
         params[PAN_UNI_BI_SWITCH].setValue(0.0f); // Bi-polar TODO: Move to onInit??
+
+        //seq_clk.construct(NULL, &resetClockOutputsHigh);
+        //rat_clk.construct(NULL, &resetClockOutputsHigh);
 
         for (int i=0; i<NUM_CLOCKS; i++) {
             clk[i].construct(i==0?NULL:&clk[0], &resetClockOutputsHigh);
@@ -207,11 +217,15 @@ struct Ratchets : Module {
         //char key[10];
 		json_t* gatesJ = json_array();
 		for (int i=0;i<MAX_SEQUENCER_STEPS; i++) {
-		//    sprintf(key, "SEQ-1-%0d", i);
-		//    json_object_set_new(rootJ, key, json_boolean(gates[i]));
 		    json_array_insert_new(gatesJ, i, json_integer((int) gates[i]));
 		}
 		json_object_set_new(rootJ, "gates", gatesJ);
+
+		json_t* pansJ = json_array();
+		for (int i=0;i<MAX_SEQUENCER_STEPS; i++) {
+		    json_array_insert_new(pansJ, i, json_integer((int) pan[i]));
+		}
+		json_object_set_new(rootJ, "pans", pansJ);
 
 		return rootJ;
 	}
@@ -237,6 +251,15 @@ struct Ratchets : Module {
 				json_t* gateJ = json_array_get(gatesJ, i);
 				if (gateJ)
 					gates[i] = !!json_integer_value(gateJ); //TODO: Check !!
+			}
+		}
+
+		json_t* pansJ = json_object_get(rootJ, "pans");
+		if (pansJ) {
+			for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
+				json_t* panJ = json_array_get(pansJ, i);
+				if (panJ)
+					pan[i] = !!json_integer_value(panJ); //TODO: Check !!
 			}
 		}
 
@@ -326,10 +349,8 @@ struct Ratchets : Module {
         } else {
             ret = 1;
         }
-            //std::cout << "getRatioDoubled Index= " << Index << " Return: " << ret << "\n";
             return ret;
 	}
-
 
 	void setIndex(int index) {
 		int numSteps = MAX_SEQUENCER_STEPS; // (int) clamp(roundf(params[STEPS_PARAM].getValue() + inputs[STEPS_INPUT].getVoltage()), 1.0f, 8.0f);
@@ -341,12 +362,15 @@ struct Ratchets : Module {
 
 	void resetRatchets(bool hardReset) {// set hardReset to true to revert learned BPM to 120 in sync mode, or else when false, learned bmp will stay persistent
 		sampleRate = (double)(APP->engine->getSampleRate());
+		//seq_clk.setSampleRate(sampleRate);
+		//rat_clk.setSampleRate(sampleRate);
 		sampleTime = 1.0 / sampleRate;
+		//seq_clk.reset();
+		//rat_clk.reset();
 		for (int i = 0; i < NUM_CLOCKS; i++) {
 			clk[i].reset();
 			syncRatios[i] = false;
 			ratiosDoubled[i] = getRatioDoubled(i);
-			//outputs[CLK_OUTPUTS + i].setVoltage((resetClockOutputsHigh ? 10.0f : 0.0f));
 		}
 		extPulseNumber = -1;
 		extIntervalTime = 0.0;
@@ -374,14 +398,14 @@ struct Ratchets : Module {
             resetRatchets(false); //TODO: Check
             if (sendResetOnRestart) {
                 resetPulse.trigger(0.001f);
-                //resetLight = 1.0f;
+                resetLight = 1.0f;
             }
         }
         if (running && restartOnStopStartRun == 2) {
             resetRatchets(false); //TODO: Check
             if (sendResetOnRestart) {
                 resetPulse.trigger(0.001f);
-                //resetLight = 1.0f;
+                resetLight = 1.0f;
             }
         }
     }
@@ -408,13 +432,17 @@ void Ratchets::process(const ProcessArgs& args) {
         toggleRun();
     }
 
+    // Run input
+    if (inputs[RUN_INPUT].isConnected() && runInputTrigger.process(inputs[RUN_INPUT].getVoltage())) {
+        toggleRun();
+    }
+
     // Reset (has to be near top because it sets steps to 0, and 0 not a real step (clock section will move to 1 before reaching outputs)
     if (resetTrigger.process(inputs[RESET_INPUT].getVoltage() + params[RESET_PARAM].getValue())) {
-        //resetLight = 1.0f;
+        resetLight = 1.0f;
         resetPulse.trigger(0.001f);
         resetRatchets(false);
         current_seq_step = 0;
-
     }
 
     if (refresh.processInputs()) {
@@ -434,7 +462,7 @@ void Ratchets::process(const ProcessArgs& args) {
     // BPM input and knob
     newMasterLength = masterLength;
     if (inputs[BPM_INPUT].isConnected()) {
-        bool trigBpmInValue = bpmDetectTrigger.process(inputs[BPM_INPUT].getVoltage());
+        //bool trigBpmInValue = bpmDetectTrigger.process(inputs[BPM_INPUT].getVoltage());
 
         //if (clockTrigger.process(clk[0].)) {
         if (clk[0].Tick()) {
@@ -443,7 +471,7 @@ void Ratchets::process(const ProcessArgs& args) {
         }
 
         // BPM Detection method
-        if (bpmDetectionMode) {
+/*        if (bpmDetectionMode) {
             // rising edge detect
             if (trigBpmInValue) {
                 if (!running) {
@@ -491,10 +519,10 @@ void Ratchets::process(const ProcessArgs& args) {
             }
         }
         // BPM CV method
-        else {// bpmDetectionMode not active
+        else {// bpmDetectionMode not active*/
             newMasterLength = clamp(0.5f / std::pow(2.0f, inputs[BPM_INPUT].getVoltage()), masterLengthMin, masterLengthMax);// bpm = 120*2^V, T = 60/bpm = 60/(120*2^V) = 0.5/2^V
             // no need to round since this clocked's master's BPM knob is a snap knob thus already rounded, and with passthru approach, no cumul error
-        }
+       // }
     }
     else {// BPM_INPUT not active
         // TDOD: Check 0f if it's right!!! newMasterLength = clamp(60.0f / bufferedKnobs[3], masterLengthMin, masterLengthMax);
@@ -502,7 +530,9 @@ void Ratchets::process(const ProcessArgs& args) {
     }
     if (newMasterLength != masterLength) {
         double lengthStretchFactor = ((double)newMasterLength) / ((double)masterLength);
-        for (int i = 0; i < 4; i++) {
+        //seq_clk.applyNewLength(lengthStretchFactor);
+        //rat_clk.applyNewLength(lengthStretchFactor);
+        for (int i = 0; i < 4; i++) { // Why 4??? MAX_SEQSTEPS
             clk[i].applyNewLength(lengthStretchFactor);
         }
         masterLength = newMasterLength;
@@ -517,15 +547,20 @@ void Ratchets::process(const ProcessArgs& args) {
         // Master clock
         if (clk[0].isReset()) {
             // See if ratio knobs changed (or unitinialized)
-            for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
+            for (int i = 0; i < MAX_SEQUENCER_STEPS-1; i++) { // -1 to safe guard
                 if (syncRatios[i]) {// unused (undetermined state) for master
                     clk[i + 1].reset();// force reset (thus refresh) of that sub-clock
                     ratiosDoubled[i] = getRatioDoubled(i);
                     syncRatios[i] = false;
                 }
             }
+            //seq_clk.setup(masterLength, 1, sampleTime);// must call setup before start. length = double_period
+            //seq_clk.start();
+            //rat_clk.setup(masterLength, 1, sampleTime);
+            //rat_clk.start();
             clk[0].setup(masterLength, 1, sampleTime);// must call setup before start. length = double_period
             clk[0].start();
+
         }
 
         // Sub clocks
@@ -549,6 +584,8 @@ void Ratchets::process(const ProcessArgs& args) {
         }
 
         // Step clocks
+        //seq_clk.stepClock();
+        //rat_clk.stepClock();
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++)
             clk[i].stepClock();
     }
@@ -562,20 +599,8 @@ void Ratchets::process(const ProcessArgs& args) {
         if (panTriggers[i].process(params[STEP_PAN_PARAM + i].getValue())) {
             pan[i] = !pan[i];
         }
-        lights[PAN_LED + i].setSmoothBrightness(pan[i] ? 1.0f :0.0f, 0.0f);  // TODO: Move
     }
-
-
-
-    int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].getValue()?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].getValue();
-    for (int i=0; i<use_steps; i++) {
-        lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.77) : (gates[i] ? 0.44 : 0.0), 0.44f);
-    }
-    if (use_steps<MAX_SEQUENCER_STEPS) {
-        for (int i=use_steps; i<MAX_SEQUENCER_STEPS; i++) {
-            lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? 0.77 : (gates[i] ? 0.44 : 0.0), 0.44f);
-        }
-    }
+    // --> seq lights
 
     //std::cout << "Voltage:" << params[OCTAVE_SEQ+current_seq_step].getValue()+params[CV_SEQ+current_seq_step].getValue() << " Octave: " << params[OCTAVE_SEQ+current_seq_step].getValue() << " CV: " << params[CV_SEQ+current_seq_step].getValue() << "\n";
     if (outputs[OUT_CV].isConnected()) {
@@ -611,11 +636,27 @@ void Ratchets::process(const ProcessArgs& args) {
     // lights
     if (refresh.processLights()) {
         // Reset light
-        //lights[RESET_LIGHT].setSmoothBrightness(resetLight, (float)sampleTime * (RefreshCounter::displayRefreshStepSkips >> 2));
-        //resetLight = 0.0f;
+        lights[RESET_LIGHT].setSmoothBrightness(resetLight, (float)sampleTime * (RefreshCounter::displayRefreshStepSkips >> 2));
+        resetLight = 0.0f;
 
         // Run light
         lights[RUN_LIGHT].setBrightness(running ? 1.0f : 0.0f);
+
+        for (int i = 0; i< MAX_SEQUENCER_STEPS;i++){
+            //lights[PAN_LED + i].setSmoothBrightness(pan[i] ? 1.0f : 0.0f, 0.0f);
+        }
+
+        int use_steps = MAX_SEQUENCER_STEPS<params[STEPS_PARAM].getValue()?MAX_SEQUENCER_STEPS:params[STEPS_PARAM].getValue();
+        for (int i=0; i<use_steps; i++) {
+            lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? (gates[i] ? 1.f : 0.77) : (gates[i] ? 0.44 : 0.0), 0.44f);
+            lights[PAN_LED + i].setSmoothBrightness( (pan[i] ? 0.44 : 0.0), 0.44f);
+        }
+        if (use_steps<MAX_SEQUENCER_STEPS) {
+            for (int i=use_steps; i<MAX_SEQUENCER_STEPS; i++) {
+                lights[STEP_LED + i].setSmoothBrightness((gateIn && i == current_seq_step) ? 0.77 : (gates[i] ? 0.44 : 0.0), 0.44f);
+                lights[PAN_LED + i].setSmoothBrightness( (pan[i] ? 0.44 : 0.0), 0.44f);
+            }
+        }
 
         // BPM light
         bool warningFlashState = true;
@@ -703,48 +744,51 @@ struct RatchetsWidget: ModuleWidget {
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
         // Inputs block
-        static constexpr float InputsY = 40.0;
-        addInput(createInput<PJ301MPort>(Vec(11, InputsY), module, Ratchets::BPM_INPUT));
-        addInput(createInput<PJ301MPort>(Vec(38, InputsY), module, Ratchets::RESET_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(66, InputsY + smallRoganOffset), module, Ratchets::STEPS_PARAM));
+        static constexpr float Row_0 = 40.0;
+        addInput(createInput<PJ301MPort>(Vec(11, Row_0), module, Ratchets::BPM_INPUT));
+        addInput(createInput<PJ301MPort>(Vec(41, Row_0), module, Ratchets::RESET_INPUT));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(71, Row_0 + smallRoganOffset), module, Ratchets::STEPS_PARAM));
 
-        addParam(createParamCentered<LEDBezel>(Vec(130, InputsY + LedButtonOffset), module, Ratchets::RESET_PARAM));
-        // Run LED
-        addParam(createParamCentered<LEDBezel>(Vec(158, InputsY + LedButtonOffset), module, Ratchets::RUN_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(156, InputsY + LedButtonOffset), module, Ratchets::RUN_LIGHT));
+        addParam(createParamCentered<LEDBezel>(Vec(143, Row_0 + LedButtonOffset), module, Ratchets::RESET_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(143, Row_0 + LedButtonOffset), module, Ratchets::RESET_LIGHT));
+
+        // Run input & LED
+        addInput(createInput<PJ301MPort>(Vec(171, Row_0-10), module, Ratchets::RUN_INPUT));
+        addParam(createParamCentered<LEDBezel>(Vec(171, Row_0 + LedButtonOffset), module, Ratchets::RUN_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(171, Row_0 + LedButtonOffset), module, Ratchets::RUN_LIGHT));
 
         //Lights
-        //addChild(createLight<MediumLight<RedLight>>(Vec(33, InputsY+22), module, Ratchets::BPM_LOCKED));
+        //addChild(createLight<MediumLight<RedLight>>(Vec(33, Row_0+22), module, Ratchets::BPM_LOCKED));
 
         // Sequencer matrix block
-        static constexpr float RowPosY = 31.0f;
-        static constexpr float BaseY = 83.0;
+        static constexpr float Matrix_Y_spacing = 28.0f;
+        static constexpr float Row_1 = 91.0;
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-            addParam(createParam<smallLEDButton>(Vec(15 , BaseY + i * RowPosY+3), module, Ratchets::STEP_LED_PARAM + i));
-            addChild(createLight<SmallLight<GreenLight>>(Vec(15 + 2.2f, BaseY + i * RowPosY + 2.2f+3), module, Ratchets::STEP_LED + i));
+            addParam(createParam<LEDButton>(Vec(13 , Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_LED_PARAM + i));
+            addChild(createLight<MediumLight<GreenLight>>(Vec(13 + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::STEP_LED + i));
 
-            addParam(createParam<RoganSmallBlueSnap>(Vec(27, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS1+i));
-            addParam(createParam<RoganSmallRed>(Vec(52, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
-            addParam(createParam<RoganSmallBlueSnap >(Vec(79, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::RATCHETS2+i));
+            addParam(createParam<RoganSmallBlueSnap>(Vec(31, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS1+i));
+            addParam(createParam<RoganSmallRed>(Vec(53, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
+            addParam(createParam<RoganSmallBlueSnap >(Vec(75, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS2+i));
 
-            addParam(createParam<LEDButton>(Vec(94 , BaseY + i * RowPosY+3), module, Ratchets::STEP_PAN_PARAM + i));
-            addChild(createLight<SmallLight<GreenLight>>(Vec(94 + 4.4f, BaseY + i * RowPosY + 4.4f+3), module, Ratchets::PAN_LED + i));
-            addParam(createParam<RoganSmallBlue>(Vec(105, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
+            addParam(createParam<LEDButton>(Vec(97 , Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_PAN_PARAM + i));
+            addChild(createLight<MediumLight<GreenLight>>(Vec(97 + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::PAN_LED + i));
+            addParam(createParam<RoganSmallBlue>(Vec(116, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
 
-            addParam(createParam<RoganSmallGreenSnap>(Vec(125, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
-            addParam(createParam<RoganSmallGreen>(Vec(148, BaseY + i * RowPosY + smallRoganOffset), module, Ratchets::CV_SEQ+i));
+            addParam(createParam<RoganSmallGreenSnap>(Vec(141, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
+            addParam(createParam<RoganSmallGreen>(Vec(165, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::CV_SEQ+i));
         }
 
         // Last row - incl. outputs block
-        static constexpr float LastrowY = 333.0;
-        addInput(createInput<PJ301MPort>(Vec(12,LastrowY ), module, Ratchets::OCT_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(38,LastrowY+2), module, Ratchets::OCTAVE_PARAM));
+        static constexpr float Row_Last = 333.0;
+        addInput(createInput<PJ301MPort>(Vec(11,Row_Last ), module, Ratchets::OCT_INPUT));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(37,Row_Last+2), module, Ratchets::OCTAVE_PARAM));
 
-        addParam(createParam<CKSS>(Vec(71, LastrowY-1), module, Ratchets::PAN_UNI_BI_SWITCH));
-        addOutput(createOutput<PJ301MPort>(Vec(93, LastrowY), module, Ratchets::SPAN_OUT));
+        addParam(createParam<CKSS>(Vec(71, Row_Last-2), module, Ratchets::PAN_UNI_BI_SWITCH));
+        addOutput(createOutput<PJ301MPort>(Vec(88, Row_Last), module, Ratchets::SPAN_OUT));
 
-        addOutput(createOutput<PJ301MPort>(Vec(125, LastrowY), module, Ratchets::OUT_GATE));
-        addOutput(createOutput<PJ301MPort>(Vec(146, LastrowY), module, Ratchets::OUT_CV));
+        addOutput(createOutput<PJ301MPort>(Vec(127, Row_Last), module, Ratchets::OUT_GATE));
+        addOutput(createOutput<PJ301MPort>(Vec(160, Row_Last), module, Ratchets::OUT_CV));
   }
 };
 

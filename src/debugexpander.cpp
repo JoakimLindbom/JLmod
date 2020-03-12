@@ -99,21 +99,23 @@ struct DebugExpanderWidget : ModuleWidget {
 		setModule(module);
         setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Debugger.svg")));
 
-		// Screws
-		//addChild(createDynamicWidget<IMScrew>(Vec(box.size.x-30, 0), module ? &module->panelTheme : NULL));
-		//addChild(createDynamicWidget<IMScrew>(Vec(box.size.x-30, 365), module ? &module->panelTheme : NULL));
+        // Screws
+        addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
 		// Expansion module
 		static const int BaseY = 100;
 		static const int RowPosY = 30;
-		static const int BaseX = 13;
+		static const int BaseX = 15;
 
         addChild(createLight<MediumLight<GreenLight>>(Vec(BaseX+3, 12), module, DebugExpander::CONNECTED_LIGHT));
 
         for (int i=0; i<NUM_PORTS; i++) {
             addOutput(createOutput<PJ301MPort>(Vec(BaseX, BaseY + i * RowPosY), module, DebugExpander::CLOCK_OUTPUTS+i));
-            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+35, BaseY + 7 + i * RowPosY), module, DebugExpander::LIGHTS+i));
-            addOutput(createOutput<PJ301MPort>(Vec(BaseX+73, BaseY + i * RowPosY), module, DebugExpander::STEP_OUTPUTS+i));
+            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+33, BaseY + 7 + i * RowPosY), module, DebugExpander::LIGHTS+i));
+            addOutput(createOutput<PJ301MPort>(Vec(BaseX+68, BaseY + i * RowPosY), module, DebugExpander::STEP_OUTPUTS+i));
         }
 
         // BPM display
