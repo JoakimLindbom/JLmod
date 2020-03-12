@@ -17,7 +17,6 @@
 
 // TODO: Add quad pan options. Pan: Start left/right for each step. Different colour on LED
 // TODO: Separate base clocks (w. option) - one drive sequencer, one drives ratchets speed
-// TODO: Add RUN input
 // TODO: Add BPM detect
 
 struct Ratchets : Module {
@@ -63,23 +62,23 @@ struct Ratchets : Module {
     };
 
     // Expander
-	float rightMessages[2][25] = {};// messages from expander
+    float rightMessages[2][25] = {};// messages from expander
 
     float phase = 0.0;
     float blinkPhase = 0.0;
 
     bool running = true;
 
-	long editingBpmMode;// 0 when no edit bpmMode, downward step counter timer when edit, negative upward when show can't edit ("--")
+    long editingBpmMode;// 0 when no edit bpmMode, downward step counter timer when edit, negative upward when show can't edit ("--")
     double sampleRate = 0.0;
     double sampleTime = 0.0;
     float deltaTime = 0.0f;
     double length = 0.0f;  // double period
     double stepCount = 0.0f;
 
-	bool scheduledReset = false;
-	long cantRunWarning = 0l;// 0 when no warning, positive downward step counter timer when warning
-	RefreshCounter refresh;
+    bool scheduledReset = false;
+    long cantRunWarning = 0l;// 0 when no warning, positive downward step counter timer when warning
+    RefreshCounter refresh;
     float resetLight = 0.0f;
 
     static constexpr float pulseWidth = 0.011f;  // 11 ms used by SEQ-3 for gate
@@ -106,11 +105,11 @@ struct Ratchets : Module {
     dsp::SchmittTrigger runTrigger;
     dsp::SchmittTrigger clockTrigger;
 
-	bool bpmDetectionMode;
-	int restartOnStopStartRun;// 0 = nothing, 1 = restart on stop run, 2 = restart on start run
-	bool sendResetOnRestart;
+    bool bpmDetectionMode;
+    int restartOnStopStartRun;// 0 = nothing, 1 = restart on stop run, 2 = restart on start run
+    bool sendResetOnRestart;
     int ppqn;  // Pulses Per Quarter Note
-	bool momentaryRunInput;// true = trigger (original rising edge only version), false = level sensitive (emulated with rising and falling detection)
+    bool momentaryRunInput;// true = trigger (original rising edge only version), false = level sensitive (emulated with rising and falling detection)
 
     double timeoutTime;
 
@@ -129,16 +128,16 @@ struct Ratchets : Module {
     const float ratioValues[NUM_CLOCKS] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
     static const int bpmMax = 300;
     static const int bpmMin = 30;
-	static constexpr float masterLengthMax = 60.0f / bpmMin;// a length is a period
-	static constexpr float masterLengthMin = 60.0f / bpmMax;// a length is a period
+    static constexpr float masterLengthMax = 60.0f / bpmMin;// a length is a period
+    static constexpr float masterLengthMin = 60.0f / bpmMax;// a length is a period
 
     bool emitResetOnStopRun;
     Trigger resetTrigger;
     Trigger bpmDetectTrigger;
     dsp::PulseGenerator resetPulse;
     dsp::PulseGenerator runPulse;
-	Trigger runButtonTrigger;
-	Trigger runInputTrigger;
+    Trigger runButtonTrigger;
+    Trigger runInputTrigger;
 
 
     // Sequencer
@@ -147,12 +146,12 @@ struct Ratchets : Module {
     bool pan[MAX_SEQUENCER_STEPS] = {};
     dsp::SchmittTrigger gateTriggers[MAX_SEQUENCER_STEPS];
     dsp::SchmittTrigger panTriggers[MAX_SEQUENCER_STEPS];
-	const float clockValues[NUM_CLOCKS+1] = {0, 1, 2, 3, 4, 5, 6, 7, 8};  // Used to force integer selection  // TODO: Remove extra step
-	int seqClockUsed1[MAX_SEQUENCER_STEPS];
-	int seqClockUsed2[MAX_SEQUENCER_STEPS];
-	float bernouli_value;
-	float base_octave = 0.0f;
-	float span_pos = -5.0f; // Stereo pan position, start left
+    const float clockValues[NUM_CLOCKS+1] = {0, 1, 2, 3, 4, 5, 6, 7, 8};  // Used to force integer selection  // TODO: Remove extra step
+    int seqClockUsed1[MAX_SEQUENCER_STEPS];
+    int seqClockUsed2[MAX_SEQUENCER_STEPS];
+    float bernouli_value;
+    float base_octave = 0.0f;
+    float span_pos = -5.0f; // Stereo pan position, start left
 
     Ratchets() {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);

@@ -11,39 +11,39 @@
 int message_BPM;
 
 struct DebugExpander : Module {
-	enum OutputIds {
-		ENUMS(CLOCK_OUTPUTS, NUM_PORTS),
-		ENUMS(STEP_OUTPUTS, NUM_PORTS),
-		NUM_OUTPUTS
-	};
-	enum LightIds {
-		CONNECTED_LIGHT,
-		ENUMS(LIGHTS, NUM_PORTS),
-		NUM_LIGHTS
-	};
+    enum OutputIds {
+        ENUMS(CLOCK_OUTPUTS, NUM_PORTS),
+        ENUMS(STEP_OUTPUTS, NUM_PORTS),
+        NUM_OUTPUTS
+    };
+    enum LightIds {
+        CONNECTED_LIGHT,
+        ENUMS(LIGHTS, NUM_PORTS),
+        NUM_LIGHTS
+    };
 
-	// Message interchange
-	float leftMessages[2][25] = {};// messages from main module
+    // Message interchange
+    float leftMessages[2][25] = {};// messages from main module
 
-	//int panelTheme;
-	unsigned int expanderRefreshCounter = 0;
+    //int panelTheme;
+    unsigned int expanderRefreshCounter = 0;
     static const unsigned int expanderRefreshStepSkips = 64;
 
-	DebugExpander() {
-		config(0, 0, NUM_OUTPUTS, NUM_LIGHTS);
+    DebugExpander() {
+        config(0, 0, NUM_OUTPUTS, NUM_LIGHTS);
 
-		leftExpander.producerMessage = leftMessages[0];
-		leftExpander.consumerMessage = leftMessages[1];
-	}
+        leftExpander.producerMessage = leftMessages[0];
+        leftExpander.consumerMessage = leftMessages[1];
+    }
 
-	void process(const ProcessArgs &args) override {
+    void process(const ProcessArgs &args) override {
 
-		expanderRefreshCounter++;
-		if (expanderRefreshCounter >= expanderRefreshStepSkips) {
-			expanderRefreshCounter = 0;
+        expanderRefreshCounter++;
+        if (expanderRefreshCounter >= expanderRefreshStepSkips) {
+            expanderRefreshCounter = 0;
 
-			bool motherPresent = (leftExpander.module && leftExpander.module->model == modelRatchets); // TODO: Add more models
-			if (motherPresent) {
+            bool motherPresent = (leftExpander.module && leftExpander.module->model == modelRatchets); // TODO: Add more models
+            if (motherPresent) {
                 lights[CONNECTED_LIGHT].setSmoothBrightness(1.f,0.3f);
                 // Get consumer message
                 float *message = (float*) leftExpander.consumerMessage;
@@ -59,8 +59,8 @@ struct DebugExpander : Module {
                 lights[CONNECTED_LIGHT].setSmoothBrightness(0.f,0.3f);
                 message_BPM = -1;
             }
-		}// expanderRefreshCounter
-	}// process()
+        }// expanderRefreshCounter
+    }// process()
 };
 
 
@@ -96,7 +96,7 @@ struct DebugExpanderWidget : ModuleWidget {
 	};
 
 	DebugExpanderWidget(DebugExpander *module) {
-		setModule(module);
+        setModule(module);
         setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Debugger.svg")));
 
         // Screws
@@ -105,10 +105,10 @@ struct DebugExpanderWidget : ModuleWidget {
         addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		// Expansion module
-		static const int BaseY = 100;
-		static const int RowPosY = 30;
-		static const int BaseX = 15;
+        // Expansion module
+        static const int BaseY = 100;
+        static const int RowPosY = 30;
+        static const int BaseX = 15;
 
         addChild(createLight<MediumLight<GreenLight>>(Vec(BaseX+3, 12), module, DebugExpander::CONNECTED_LIGHT));
 
@@ -119,12 +119,11 @@ struct DebugExpanderWidget : ModuleWidget {
         }
 
         // BPM display
-		BpmDisplayWidget *bpmDisplay = new BpmDisplayWidget();
-		bpmDisplay->box.size = Vec(55, 30);// 3 characters
-		bpmDisplay->box.pos = Vec((175) / 2 - bpmDisplay->box.size.x / 2 - 8, 48 - bpmDisplay->box.size.y / 2);
-		bpmDisplay->module = module;
-		addChild(bpmDisplay);
-
+        BpmDisplayWidget *bpmDisplay = new BpmDisplayWidget();
+        bpmDisplay->box.size = Vec(55, 30);// 3 characters
+        bpmDisplay->box.pos = Vec((175) / 2 - bpmDisplay->box.size.x / 2 - 8, 48 - bpmDisplay->box.size.y / 2);
+        bpmDisplay->module = module;
+        addChild(bpmDisplay);
 	}
 
 	void step() override {
