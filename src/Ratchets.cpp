@@ -62,7 +62,7 @@ struct Ratchets : Module {
     };
 
     // Expander
-    float rightMessages[2][25] = {};// messages from expander
+    float rightMessages[2][26] = {};// messages from expander
 
     float phase = 0.0;
     float blinkPhase = 0.0;
@@ -193,12 +193,15 @@ struct Ratchets : Module {
 			float *message = (float*) rightExpander.module->leftExpander.producerMessage;
 			// Write message
 			for (int i = 0; i < 8; i++) {
-				message[i] = clk[i].isHigh()?1.0f:0.0f;     // LEDs
-				message[i+9] = clk[i].isHigh()?10.0f:0.0f;  // Outputs
-				message[i+17] = current_seq_step==i?10.0f:0.0f;  // Running step
+				message[i] = clk[i].isHigh()?1.0f:0.0f;          // 0-7 Clocks - LEDs
+				message[i+9] = clk[i].isHigh()?10.0f:0.0f;       // 9-16 Clocks - Gates
+				message[i+17] = current_seq_step==i?10.0f:0.0f;  // 17-24 Sequencer Steps
 			}
 			message[8] = (60.0f / masterLength) + 0.5f;     // BPM
-			// Flip messages at the end of the timestep
+			message[25] = (float)current_seq_step;
+			//message[26] = "BPM"; /TODO: Check how Stoermelder sends text labels to expander
+
+		    // Flip messages at the end of the timestep
 			rightExpander.module->leftExpander.messageFlipRequested = true;
 		}
     }
@@ -744,17 +747,17 @@ struct RatchetsWidget: ModuleWidget {
 
         // Inputs block
         static constexpr float Row_0 = 40.0;
-        addInput(createInput<PJ301MPort>(Vec(11, Row_0), module, Ratchets::BPM_INPUT));
-        addInput(createInput<PJ301MPort>(Vec(41, Row_0), module, Ratchets::RESET_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(71, Row_0 + smallRoganOffset), module, Ratchets::STEPS_PARAM));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(4.5), Row_0), module, Ratchets::BPM_INPUT));
 
-        addParam(createParamCentered<LEDBezel>(Vec(143, Row_0 + LedButtonOffset), module, Ratchets::RESET_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(143, Row_0 + LedButtonOffset), module, Ratchets::RESET_LIGHT));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(19), Row_0), module, Ratchets::RUN_INPUT));
+        addParam(createParamCentered<LEDBezel>(Vec(mm2px(32), Row_0 + LedButtonOffset), module, Ratchets::RUN_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(32), Row_0 + LedButtonOffset), module, Ratchets::RUN_LIGHT));
 
-        // Run input & LED
-        addInput(createInput<PJ301MPort>(Vec(171, Row_0-10), module, Ratchets::RUN_INPUT));
-        addParam(createParamCentered<LEDBezel>(Vec(171, Row_0 + LedButtonOffset), module, Ratchets::RUN_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(171, Row_0 + LedButtonOffset), module, Ratchets::RUN_LIGHT));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(42), Row_0), module, Ratchets::RESET_INPUT));
+        addParam(createParamCentered<LEDBezel>(Vec(mm2px(55), Row_0 + LedButtonOffset), module, Ratchets::RESET_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(55), Row_0 + LedButtonOffset), module, Ratchets::RESET_LIGHT));
+
+        addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(65), Row_0 + smallRoganOffset), module, Ratchets::STEPS_PARAM));
 
         //Lights
         //addChild(createLight<MediumLight<RedLight>>(Vec(33, Row_0+22), module, Ratchets::BPM_LOCKED));
@@ -763,31 +766,31 @@ struct RatchetsWidget: ModuleWidget {
         static constexpr float Matrix_Y_spacing = 28.0f;
         static constexpr float Row_1 = 91.0;
         for (int i = 0; i < MAX_SEQUENCER_STEPS; i++) {
-            addParam(createParam<LEDButton>(Vec(13 , Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_LED_PARAM + i));
-            addChild(createLight<MediumLight<GreenLight>>(Vec(13 + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::STEP_LED + i));
+            addParam(createParam<LEDButton>(Vec(mm2px(3) , Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_LED_PARAM + i));
+            addChild(createLight<MediumLight<GreenLight>>(Vec(mm2px(3) + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::STEP_LED + i));
 
-            addParam(createParam<RoganSmallBlueSnap>(Vec(31, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS1+i));
-            addParam(createParam<RoganSmallRed>(Vec(53, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
-            addParam(createParam<RoganSmallBlueSnap >(Vec(75, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS2+i));
+            addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(12), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS1+i));
+            addParam(createParam<RoganSmallRed>(Vec(mm2px(19), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::BERNOULI_GATE+i));
+            addParam(createParam<RoganSmallBlueSnap >(Vec(mm2px(26), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::RATCHETS2+i));
 
-            addParam(createParam<LEDButton>(Vec(97 , Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_PAN_PARAM + i));
-            addChild(createLight<MediumLight<GreenLight>>(Vec(97 + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::PAN_LED + i));
-            addParam(createParam<RoganSmallBlue>(Vec(116, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
+            addParam(createParam<LEDButton>(Vec(mm2px(39), Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_PAN_PARAM + i));
+            addChild(createLight<MediumLight<GreenLight>>(Vec(mm2px(39) + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::PAN_LED + i));
+            addParam(createParam<RoganSmallBlue>(Vec(mm2px(48), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
 
-            addParam(createParam<RoganSmallGreenSnap>(Vec(141, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
-            addParam(createParam<RoganSmallGreen>(Vec(165, Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::CV_SEQ+i));
+            addParam(createParam<RoganSmallGreenSnap>(Vec(mm2px(61), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
+            addParam(createParam<RoganSmallGreen>(Vec(mm2px(69), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::CV_SEQ+i));
         }
 
         // Last row - incl. outputs block
         static constexpr float Row_Last = 333.0;
-        addInput(createInput<PJ301MPort>(Vec(11,Row_Last ), module, Ratchets::OCT_INPUT));
-        addParam(createParam<RoganSmallBlueSnap>(Vec(37,Row_Last+2), module, Ratchets::OCTAVE_PARAM));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(4.5),Row_Last ), module, Ratchets::OCT_INPUT));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(15),Row_Last+2), module, Ratchets::OCTAVE_PARAM));
 
-        addParam(createParam<CKSS>(Vec(71, Row_Last-2), module, Ratchets::PAN_UNI_BI_SWITCH));
-        addOutput(createOutput<PJ301MPort>(Vec(88, Row_Last), module, Ratchets::SPAN_OUT));
+        addParam(createParam<CKSS>(Vec(mm2px(29), Row_Last-2), module, Ratchets::PAN_UNI_BI_SWITCH));
+        addOutput(createOutput<PJ301MPort>(Vec(mm2px(38.75), Row_Last), module, Ratchets::SPAN_OUT));
 
-        addOutput(createOutput<PJ301MPort>(Vec(127, Row_Last), module, Ratchets::OUT_GATE));
-        addOutput(createOutput<PJ301MPort>(Vec(160, Row_Last), module, Ratchets::OUT_CV));
+        addOutput(createOutput<PJ301MPort>(Vec(mm2px(57), Row_Last), module, Ratchets::OUT_GATE));
+        addOutput(createOutput<PJ301MPort>(Vec(mm2px(68.75), Row_Last), module, Ratchets::OUT_CV));
   }
 };
 

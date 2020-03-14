@@ -1,6 +1,5 @@
 #include "JLmod.hpp"
 #include "dsp/digital.hpp"
-
 #include "common.hpp"
 #include <iostream>
 #include <cmath>
@@ -210,7 +209,7 @@ void Timers::onSampleRateChange() {
 
 void Timers::onCreate() {
     DEBUG("onCreate");
-    Timers::onSampleRateChange(); // v0.6 doesn't seem to call onSampleRateChange as before
+    Timers::onSampleRateChange();
 }
 
 void Timers::process(const ProcessArgs& args) {
@@ -291,23 +290,12 @@ void Timers::process(const ProcessArgs& args) {
 }
 
 struct TimersWidget: ModuleWidget {
-    TimersWidget(Timers *module);
-};
+    TimersWidget(Timers *module){
+        setModule(module);
 
-//TimersWidget::TimersWidget() {
-//    Timers *module = new Timers();
-//    setModule(module);
-TimersWidget::TimersWidget(Timers *module) {
-//	if (module){
-	    setModule(module);
         box.size = Vec(15*10, 380);
 
-        {
-            SVGPanel *panel = new SVGPanel();
-            panel->box.size = box.size;
-            panel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Timers.svg")));
-            addChild(panel);
-        }
+        setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Timers.svg")));
 
         addChild(createWidget<ScrewSilver>(Vec(15, 0)));
         addChild(createWidget<ScrewSilver>(Vec(box.size.x-30, 0)));
@@ -394,7 +382,7 @@ TimersWidget::TimersWidget(Timers *module) {
         addParam(createParam<BefacoTinyKnob>(Vec(Knob_X, offset_Y + Knob_Y), module, Timers::timer3_PARAM));
         addParam(createParam<Trimpot>(Vec(Knob2_X, offset_Y + Knob2_Y), module, Timers::timer3_FINE));
         addOutput(createOutput<PJ301MPort>(Vec(Gate_X, offset_Y + Gate_Y), module, Timers::TRIGGER3_OUTPUT));
-//    }
-}
+    }
+};
 
-//Model *modelTimers = createModel<Timers, TimersWidget>("Timers");
+Model *modelTimers = createModel<Timers, TimersWidget>("Timers");
