@@ -26,7 +26,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
-        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
+        path: ../dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
   build_win:
     name: Build Windows
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
-        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
+        path: ../dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
   build_osx:
     name: Build OSX
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
-        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
+        path: ../dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
   combineDist:
     name: Combine Distributions
     runs-on: ubuntu-latest
