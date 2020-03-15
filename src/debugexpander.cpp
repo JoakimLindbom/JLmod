@@ -145,8 +145,8 @@ struct DebugExpanderWidget : ModuleWidget {
 
         for (int i=0; i<NUM_PORTS; i++) {
             addOutput(createOutput<PJ301MPort>(Vec(BaseX, BaseY + i * RowY), module, DebugExpander::CLOCK_OUTPUTS+i));
-            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+33, BaseY + 7 + i * RowY), module, DebugExpander::LIGHTS+i));
-            addOutput(createOutput<PJ301MPort>(Vec(BaseX+68, BaseY + i * RowY), module, DebugExpander::STEP_OUTPUTS+i));
+            addChild(createLight<MediumLight<RedLight>>(Vec(BaseX+32, BaseY + 7 + i * RowY), module, DebugExpander::LIGHTS+i));
+            addOutput(createOutput<PJ301MPort>(Vec(BaseX+62, BaseY + i * RowY), module, DebugExpander::STEP_OUTPUTS+i));
         }
 
 	}
