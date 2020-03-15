@@ -1,0 +1,83 @@
+on:
+  push:
+    branches:
+    - master
+name: Build Master
+env:
+  PLUGIN_BUILD_VERSION: 1.0.1
+  RACK_SDK_VERSION: 1.1.6
+jobs:
+  fetch_SDK:
+    name: Fetch SDK
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Fetch SDK
+      uses: ./.github/actions/rack_sdk
+  build_Linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Build Linux
+      uses: ./.github/actions/build_linux
+    - name: Save artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
+        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
+  build_win:
+    name: Build Windows
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Build Windows
+      uses: ./.github/actions/build_win
+    - name: Save artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
+        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
+  build_osx:
+    name: Build OSX
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Build OSX
+      uses: ./.github/actions/build_osx
+    - name: Save artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
+        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
+  combineDist:
+    name: Combine Distributions
+    runs-on: ubuntu-latest
+    needs: [buildLinux, buildWindows, buildOsx]
+    steps:
+    - name: Download Linux
+      uses: actions/download-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
+        path: ./dist
+    - name: Download Windows
+      uses: actions/download-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-win.zip
+        path: ./dist
+    - name: Download Osx
+      uses: actions/download-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-mac.zip
+        path: ./dist
+    - name: Unzip
+      run: unzip -o "dist/*.zip" -d ./dist
+    - name: Remove Zipfiles
+      run: rm dist/*.zip
+    - name: Combine
+      run: cd dist && zip -q -9 -r JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}.zip ./JLmod
+    - name: Save artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}.zip
+        path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}.zip
