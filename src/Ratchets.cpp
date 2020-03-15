@@ -21,6 +21,7 @@
 
 struct Ratchets : Module {
     enum ParamIds {
+    RESET_PARAM,                                // Reset button
     RUN_PARAM,                                  // Run sequencer?
     STEPS_PARAM,                                // How many step to execute
     // Sequencer matrix
@@ -30,34 +31,31 @@ struct Ratchets : Module {
     ENUMS(RATCHETS2, MAX_SEQUENCER_STEPS),      // How many sub gates to trigger
     ENUMS(OCTAVE_SEQ, MAX_SEQUENCER_STEPS),     // Output note: Octave
     ENUMS(CV_SEQ, MAX_SEQUENCER_STEPS),         // Output note: Note
-    RESET_PARAM,                                // Reset button
-    BPMMODE_DOWN_PARAM,
-    BPMMODE_UP_PARAM,
-    OCTAVE_PARAM,                                      // Base octave
     ENUMS(STEP_PAN_PARAM, MAX_SEQUENCER_STEPS),        // Enable/disable panning for this step
     ENUMS(STEP_PAN_SPREAD_PARAM, MAX_SEQUENCER_STEPS), // Panning left-right spread for this step
+    OCTAVE_PARAM,                                      // Base octave
     PAN_UNI_BI_SWITCH,                                 // Select Unipolar or bipolar output for the stereo panner
     NUM_PARAMS
     };
     enum InputIds {
     BPM_INPUT,                                  // External clock input
-    RESET_INPUT,                                // External reset input
     RUN_INPUT,                                  // External run input
+    RESET_INPUT,                                // External reset input
     OCT_INPUT,                                  // External base octave input
     NUM_INPUTS
     };
     enum OutputIds {
+    SPAN_OUT,                                   // Stereo pan out
     OUT_GATE,                                   // Gate out
     OUT_CV,                                     // CV Out
-    SPAN_OUT,                                   // Stereo pan out
     NUM_OUTPUTS
     };
     enum LightIds {
     RUN_LIGHT,
+    RESET_LIGHT,
     ENUMS(STEP_LED, MAX_SEQUENCER_STEPS),
     ENUMS(PAN_LED, MAX_SEQUENCER_STEPS),
     BPM_LOCKED,
-    RESET_LIGHT,
     NUM_LIGHTS
     };
 
@@ -737,7 +735,7 @@ struct RatchetsWidget: ModuleWidget {
 
         setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Ratchets.svg")));
         static constexpr int smallRoganOffset = 2;
-        static constexpr float LedButtonOffset = 11;
+        static constexpr float LedButtonOffset = 12;
 
         // Screws
         addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
@@ -746,18 +744,18 @@ struct RatchetsWidget: ModuleWidget {
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
         // Inputs block
-        static constexpr float Row_0 = 40.0;
+        static float Row_0 = mm2px(13);
         addInput(createInput<PJ301MPort>(Vec(mm2px(4.5), Row_0), module, Ratchets::BPM_INPUT));
 
-        addInput(createInput<PJ301MPort>(Vec(mm2px(19), Row_0), module, Ratchets::RUN_INPUT));
-        addParam(createParamCentered<LEDBezel>(Vec(mm2px(32), Row_0 + LedButtonOffset), module, Ratchets::RUN_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(32), Row_0 + LedButtonOffset), module, Ratchets::RUN_LIGHT));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(17), Row_0), module, Ratchets::RUN_INPUT));
+        addParam(createParamCentered<LEDBezel>(Vec(mm2px(31), Row_0 + LedButtonOffset), module, Ratchets::RUN_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(31), Row_0 + LedButtonOffset), module, Ratchets::RUN_LIGHT));
 
-        addInput(createInput<PJ301MPort>(Vec(mm2px(42), Row_0), module, Ratchets::RESET_INPUT));
-        addParam(createParamCentered<LEDBezel>(Vec(mm2px(55), Row_0 + LedButtonOffset), module, Ratchets::RESET_PARAM));
-        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(55), Row_0 + LedButtonOffset), module, Ratchets::RESET_LIGHT));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(40), Row_0), module, Ratchets::RESET_INPUT));
+        addParam(createParamCentered<LEDBezel>(Vec(mm2px(54), Row_0 + LedButtonOffset), module, Ratchets::RESET_PARAM));
+        addChild(createLightCentered<MuteLight<GreenLight>>(Vec(mm2px(54), Row_0 + LedButtonOffset), module, Ratchets::RESET_LIGHT));
 
-        addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(65), Row_0 + smallRoganOffset), module, Ratchets::STEPS_PARAM));
+        addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(64.5), Row_0 + smallRoganOffset), module, Ratchets::STEPS_PARAM));
 
         //Lights
         //addChild(createLight<MediumLight<RedLight>>(Vec(33, Row_0+22), module, Ratchets::BPM_LOCKED));
@@ -775,18 +773,18 @@ struct RatchetsWidget: ModuleWidget {
 
             addParam(createParam<LEDButton>(Vec(mm2px(39), Row_1 + i * Matrix_Y_spacing+3), module, Ratchets::STEP_PAN_PARAM + i));
             addChild(createLight<MediumLight<GreenLight>>(Vec(mm2px(39) + 4, Row_1 + i * Matrix_Y_spacing + 7), module, Ratchets::PAN_LED + i));
-            addParam(createParam<RoganSmallBlue>(Vec(mm2px(48), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
+            addParam(createParam<RoganSmallBlue>(Vec(mm2px(47), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::STEP_PAN_SPREAD_PARAM+i));
 
-            addParam(createParam<RoganSmallGreenSnap>(Vec(mm2px(61), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
+            addParam(createParam<RoganSmallGreenSnap>(Vec(mm2px(60), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::OCTAVE_SEQ+i));
             addParam(createParam<RoganSmallGreen>(Vec(mm2px(69), Row_1 + i * Matrix_Y_spacing + smallRoganOffset), module, Ratchets::CV_SEQ+i));
         }
 
         // Last row - incl. outputs block
         static constexpr float Row_Last = 333.0;
-        addInput(createInput<PJ301MPort>(Vec(mm2px(4.5),Row_Last ), module, Ratchets::OCT_INPUT));
+        addInput(createInput<PJ301MPort>(Vec(mm2px(4.5),Row_Last), module, Ratchets::OCT_INPUT));
         addParam(createParam<RoganSmallBlueSnap>(Vec(mm2px(15),Row_Last+2), module, Ratchets::OCTAVE_PARAM));
 
-        addParam(createParam<CKSS>(Vec(mm2px(29), Row_Last-2), module, Ratchets::PAN_UNI_BI_SWITCH));
+        addParam(createParam<CKSS>(Vec(mm2px(29), Row_Last-1), module, Ratchets::PAN_UNI_BI_SWITCH));
         addOutput(createOutput<PJ301MPort>(Vec(mm2px(38.75), Row_Last), module, Ratchets::SPAN_OUT));
 
         addOutput(createOutput<PJ301MPort>(Vec(mm2px(57), Row_Last), module, Ratchets::OUT_GATE));
