@@ -14,4 +14,4 @@ unzip -o rack-sdk.zip
 rm rack-sdk.zip
 
 make clean
-make install
+make dist
