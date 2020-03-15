@@ -1,4 +1,3 @@
-
 FROM debian
 
 LABEL "com.github.actions.name"="VCVRackPluginBuilder-OSX"
@@ -34,8 +33,7 @@ RUN apt-get update && \
     zip                 \
     libgl1-mesa-dev     \
     libglu1-mesa-dev    \
-    jq			\
-    rsync
+    jq
 
 # Install osxcross
 # NOTE: The Docker Hub's build machines run varying types of CPUs, so an image
