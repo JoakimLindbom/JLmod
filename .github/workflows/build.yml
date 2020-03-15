@@ -17,6 +17,7 @@ jobs:
   build_Linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build Linux
@@ -29,6 +30,7 @@ jobs:
   build_win:
     name: Build Windows
     runs-on: ubuntu-latest
+    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build Windows
@@ -41,6 +43,7 @@ jobs:
   build_osx:
     name: Build OSX
     runs-on: ubuntu-latest
+    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build OSX
@@ -53,7 +56,7 @@ jobs:
   combineDist:
     name: Combine Distributions
     runs-on: ubuntu-latest
-    needs: [buildLinux, buildWindows, buildOsx]
+    needs: [build_Linux, build_win, build_osx]
     steps:
     - name: Download Linux
       uses: actions/download-artifact@v1
