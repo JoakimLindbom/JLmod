@@ -1,4 +1,6 @@
 # JLmod 
+![Build Master](https://github.com/JoakimLindbom/JLmod/workflows/Build%20Master/badge.svg)
+
 [VCV Rack](https://github.com/VCVRack/Rack) modules by Joakim Lindbom.
 
 - [Contents](#contents)
