@@ -24,7 +24,7 @@
     {
       "slug": "Ratchets",
       "name": "Ratchets",
-      "description": "Gate and CV sequencer with 1-8 gates generated per step",
+      "description": "Gate and CV sequencer with 1-8 gates generated per step, generating a ratcheting effect",
       "tags": [
         "Sequencer"
       ]
