@@ -3,8 +3,7 @@
 
 [VCV Rack](https://github.com/VCVRack/Rack) synthesizer modules by Joakim Lindbom.
 
-<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382">
-<img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
+<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382"> <img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
 
 
 My main aim for my module collection is utility and sequencing modules of various kinds. Currently there's no plans for any advanced modules working in the sound domain simply because I lack knowledge in that field. But by digging deeper into DSP programming I also expect to learn more...
@@ -39,9 +38,11 @@ Each step has an Octave and CV setting. There's also a global octave input and k
 
 Expander module to Ratchets that exposes the 8 internal clocks and the 8 steps in the sequencer. Used by me for debugging, but can be used as a utility for e.g. triggering at specific step.
 
+The Conn light is green when the module has connected to the Ratchets module, that needs to be on the left of the expander.
+The Clocks outputs are arranged from top to bottom. The first is the clock generating single "clicks" and the following are the ones generating the multiplied "clicks"
+The Steps output emits a gate when the current step is activate; also organised from top to bottom. 
 
 ### Utilities
-
 #### Timers
 << Discontinued for the moment >>
 
@@ -52,12 +53,9 @@ Range: 0.1 - 999.9 seconds
 A timer can re-trigger itself or another timer.
 The timer starts when the Trigger button is pressed, or when there's an external trigger received.
 
-
-
-
 ## Building
 ### Local computer
-First, install [VCV Rack SDK](https://vcvrack.com/downloads/Rack-SDK-1.1.6.zip) (1.1.6 is the latest version as of now) or if you're more adventurous [clone and setup a full development version of Rack for yourself](https://github.com/VCVRack/Rack#building).
+First, install VCV Rack SDK asdescribed in the [Plugin Development Tutorial]("https://vcvrack.com/manual/PluginDevelopmentTutorial") or if you're more adventurous [clone and setup a full development version of Rack for yourself](https://github.com/VCVRack/Rack#building).
 
 Then, clone this repo into the `plugins` directory and run `make` from this directory. `make dist` will copy the binaries to your live Rack instance.
 
