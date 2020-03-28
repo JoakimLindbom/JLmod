@@ -3,8 +3,8 @@
 
 [VCV Rack](https://github.com/VCVRack/Rack) synthesizer modules by Joakim Lindbom.
 
-<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="15%">
-<img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height="15%">
+<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382">
+<img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
 
 
 My main aim for my module collection is utility and sequencing modules of various kinds. Currently there's no plans for any advanced modules working in the sound domain simply because I lack knowledge in that field. But by digging deeper into DSP programming I also expect to learn more...
@@ -22,7 +22,7 @@ My main aim for my module collection is utility and sequencing modules of variou
 ###Sequencers
 
 #### Ratchets
-<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="25%">
+<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="191">
 
 8 step gate and note sequencer with 1-8 ratchet "clicks" per step and with a built-in Bernouli gate for each step selecting between two different ratchet settings.
 
@@ -35,7 +35,7 @@ Each step can pan (left-right) with adjustable width; each step panner can be en
 Each step has an Octave and CV setting. There's also a global octave input and knob, if you want to transpose all CV out.
 
 #### Ratchets_debugger
-<img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height="25%">
+<img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height="191">
 
 Expander module to Ratchets that exposes the 8 internal clocks and the 8 steps in the sequencer. Used by me for debugging, but can be used as a utility for e.g. triggering at specific step.
 
