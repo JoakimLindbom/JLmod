@@ -29,11 +29,19 @@ My main aim for my module collection is utility and sequencing modules of variou
 
 The module needs an external clock. Currently the BPM input is exactly that and not a clock input. I'm working on adding Clock input functionaly to the BPM input.
 
-Number of steps in the sequencer can be set and individual steps can be disabled.
+The Run input and button are used to start and stop the sequencer. 
 
-Each step can pan (left-right) with adjustable width; each step panner can be enabled/disabled. The panner output can be set to bi-polar (default) and then it works as a normal panner. In unipolar mode (0-10V) it can e.g. be used to drive a parameter on a filter.
+The Reset input and button resets the step sequencer and makes it restart at the first step.
 
-Each step has an Octave and CV setting. There's also a global octave input and knob, if you want to transpose all CV out.
+The Steps knob is used to control the number of steps used by the sequencer. Individual steps can be enabled/ disabled.
+
+Each step can pan (left-right) with adjustable width; each step panner can be enabled/disabled. The panner output can be set to bi-polar (±5V  - default) and then it works as a normal panner. In unipolar mode (0-10V) it can e.g. be used to drive a parameter on a filter.
+
+Each step has an Octave and CV setting. There's also a global octave input and knob, if you want to transpose all CV output.
+
+The Gate output emits gates for each ratchet "click".
+
+The CV output emits CV, based on Ocv+CV + octave transposed if selected.
 
 #### Ratchets_debugger
 <img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height="191">
