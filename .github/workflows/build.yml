@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-    - master
+    - masterX # Changed to avoid unnecessary builds. Change back to master to enable building
 name: Build Master
 env:
   PLUGIN_BUILD_VERSION: 1.0.0
