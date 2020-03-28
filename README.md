@@ -3,8 +3,10 @@
 
 [VCV Rack](https://github.com/VCVRack/Rack) synthesizer modules by Joakim Lindbom.
 
-<img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382"> <img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
-
+<p float="left">
+    <img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382"> 
+    <img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
+</p>
 
 My main aim for my module collection is utility and sequencing modules of various kinds. Currently there's no plans for any advanced modules working in the sound domain simply because I lack knowledge in that field. But by digging deeper into DSP programming I also expect to learn more...
 
