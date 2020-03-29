@@ -1,7 +1,7 @@
 {
   "slug": "JLmod",
   "name": "JLmod",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "GPL-3.0-or-later",
   "brand": "JLmod",
   "author": "Joakim Lindbom",
@@ -27,6 +27,15 @@
       "description": "Gate and CV sequencer with 1-8 gates generated per step, generating a ratcheting effect",
       "tags": [
         "Sequencer"
+      ]
+    },
+    {
+      "slug": "KeySplit",
+      "name": "KeySplit",
+      "description": "Keyboard splitter that takes single gate and CV input, splits to left and right hand outputs.",
+      "tags": [
+        "Utility",
+        "Polyphonic"
       ]
     }
   ]
