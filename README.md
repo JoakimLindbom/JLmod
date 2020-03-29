@@ -7,6 +7,8 @@ JLmod
 <p float="left">
     <img src="https://user-images.githubusercontent.com/3755877/77819450-35bdc780-70db-11ea-9758-4c60c0cb8fb8.png" height="382"> 
     <img src="https://user-images.githubusercontent.com/3755877/77819454-3b1b1200-70db-11ea-9c04-82abc0274c90.png" height=382">
+    <img src="https://user-images.githubusercontent.com/3755877/77861183-b67fdf00-7213-11ea-9f5a-6d02522cb15e.png" height=382">
+
 </p>
 
 The main aim for my module collection is sequencing and utility modules of various kinds. Currently there's no plans for any advanced modules working in the sound domain simply because I lack knowledge in that field. But by digging deeper into DSP programming I also expect to learn more...
@@ -17,6 +19,7 @@ Contents
     - [Ratchets](#Ratchets)
     - [Ratchets debugger](#Ratchets_debugger)
 - [Utilities](#Utilities)
+    - [KeySplit](#KeySPlit)
     - [Timers](#Timers)
 - [Building - local and cloud](#Building)
 - [VCV Rack Library](#library)
@@ -56,6 +59,17 @@ The Clocks outputs are arranged from top to bottom. The first is the clock gener
 The Steps output emits a gate when the current step is activate; also organised from top to bottom. 
 
 # Utilities
+## KeySplit
+Experimental.
+
+Keyboard splitter. Input from single keyboard (or sequencer, any CV source) is split up into two CV and gate outputs. Split point can be set by input or knob.
+Monophonic at the moment. Next to add polyphony.
+
+<p float="left">
+    <img src="https://user-images.githubusercontent.com/3755877/77861134-7d476f00-7213-11ea-90a6-9b74b2a8ddb2.png" height=191">
+</p>p>
+
+
 ## Timers
 << Discontinued for the moment >>
 
@@ -84,3 +98,5 @@ Copyright (c) Joakim Lindbom 2018-2020, GPLv3.
 
 # Acknowledgements
 The internal clocks of Ratchets is based around code from Imprompt Modular and also some graphics elements are derived from the same.
+
+
