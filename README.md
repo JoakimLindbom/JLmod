@@ -19,7 +19,7 @@ Contents
     - [Ratchets](#Ratchets)
     - [Ratchets debugger](#Ratchets_debugger)
 - [Utilities](#Utilities)
-    - [KeySplit](#KeySPlit)
+    - [KeySplit](#KeySplit)
     - [Timers](#Timers)
 - [Building - local and cloud](#Building)
 - [VCV Rack Library](#library)
