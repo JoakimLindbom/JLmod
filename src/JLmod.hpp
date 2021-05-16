@@ -10,4 +10,6 @@ extern Plugin *pluginInstance;
 extern Model *modelRatchets;
 //extern Model *modelTimers;
 extern Model *modelDebugExpander;
-extern Model* modelKeySplit;
+extern Model *modelKeySplit;
+extern Model* modelFourious;
+

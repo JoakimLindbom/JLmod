@@ -37,6 +37,14 @@
         "Utility",
         "Polyphonic"
       ]
+    },
+    {
+      "slug": "Fourious",
+      "name": "Fourious",
+      "description": "Fourier Transformation based VCO",
+      "tags": [
+        "VCO"
+      ]
     }
   ]
 }
