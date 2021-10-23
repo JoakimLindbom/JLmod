@@ -68,7 +68,6 @@ struct Fourious : Module {
         for (int i=1;i<=11;i+=2) {
             harmonicn = (1.0+params[HARMONIC_AMP+(i-1)/2].getValue())*sinf(i * 2.0f * M_PI * phase)/i;
             if (inputs[HARMONIC_INPUT+(i-1)/2].isConnected()){
-                  //float wave1_sum1 = params[HARMONIC_INPUT_AMP+((i-1)/2)].value * inputs[HARMONIC_INPUT+((i-1)/2)].value/4.0f;
                   float onset = harmonicn * params[HARMONIC_INPUT_AMP+((i-1)/2)].value * inputs[HARMONIC_INPUT+((i-1)/2)].value/(4.0f); // *i
                   harmonicn += onset;
             }
@@ -78,8 +77,6 @@ struct Fourious : Module {
 
         if (stride_counter++ > 5000) {
             std::cout.precision(7);
-            //std::cout << "1: " << harmonic1 << "\ta:" << harmonic1a << "\tb:" << harmonic1b << "\n";
-            //std::cout << "1: " << wave1_sum << " 2: " << harmonic1+harmonic3+harmonic5+harmonic7+harmonic9+harmonic11 << "\n";
             stride_counter = 0;
         }
 
@@ -87,8 +84,6 @@ struct Fourious : Module {
         // OUT2 calculations
         //damping +=
         //sinf(2.0f * M_PI * phase *
-
-
 
         // Blink light at 1Hz
         blinkPhase += deltaTime;
