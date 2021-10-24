@@ -45,6 +45,7 @@ struct Fourious : Module {
             configParam(Fourious::HARMONIC_AMP + i, -2.0f, 2.0f, 0.0f, "Amplification level");
             configParam(Fourious::HARMONIC_INPUT_AMP + i, 0.0f, 2.0f, 0.0f, "External input amplification level");
          }
+       configInput(CV_INPUT, "1V/oct pitch");
 	}
 
     void process(const ProcessArgs& args) {
