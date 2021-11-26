@@ -7,17 +7,17 @@ env:
   PLUGIN_BUILD_VERSION: 1.0.1 # How to make this external? Get data from plugin.json
   RACK_SDK_VERSION: 1.1.6
 jobs:
-#  fetch_SDK:
-#    name: Fetch SDK
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@master
-#    - name: Fetch SDK
-#      uses: ./.github/actions/rack_sdk
+  fetch_SDK:
+    name: Fetch SDK
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Fetch SDK
+      uses: ./.github/actions/rack_sdk
   build_Linux:
     name: Build Linux
     runs-on: ubuntu-latest
-#    needs: [fetch_SDK]
+    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build Linux
@@ -30,7 +30,7 @@ jobs:
   build_win:
     name: Build Windows
     runs-on: ubuntu-latest
-#    needs: [fetch_SDK]
+    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build Windows
@@ -44,7 +44,6 @@ jobs:
     name: Combine Distributions
     runs-on: ubuntu-latest
     needs: [build_Linux, build_win]
-#    needs: [build_Linux, build_win]
     steps:
     - name: Download Linux
       uses: actions/download-artifact@v1
