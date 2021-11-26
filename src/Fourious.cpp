@@ -81,7 +81,6 @@ struct Fourious : Module {
             stride_counter = 0;
         }
 
-
         // OUT2 calculations
         //damping +=
         //sinf(2.0f * M_PI * phase *
