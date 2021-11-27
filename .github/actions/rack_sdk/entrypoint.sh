@@ -3,6 +3,11 @@
 # Expects RACK_SDK_VERSION environment variable to be set in workflow
 
 set -eu
+RACK_SDK_VERSION= 2.beta.1
+ARCH= lin
+
+
+echo ${{ RACK_SDK_VERSION }}
 
 curl -o RackSDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ RACK_SDK_VERSION }}-${{ ARCH }}.zip
 unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip

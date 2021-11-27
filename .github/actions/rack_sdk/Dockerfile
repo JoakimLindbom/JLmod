@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 LABEL "com.github.actions.name"="Fetch Rack SDK"
 LABEL "com.github.actions.description"="Download and unzip the Rack SDK"

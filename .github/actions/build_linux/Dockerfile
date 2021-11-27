@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 LABEL "com.github.actions.name"="VCVRackPluginBuilder-Linux"
 LABEL "com.github.actions.description"="Builds a VCV Rack plugin for Linux"
