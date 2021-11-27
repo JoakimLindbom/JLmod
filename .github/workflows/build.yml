@@ -16,7 +16,6 @@ jobs:
     - name: Fetch SDK
 #      uses: ./.github/actions/rack_sdk
       run: |
-        https://vcvrack.com/downloads/Rack-2.beta.1-lin.zip
           curl -o RackSDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ RACK_SDK_VERSION }}-${{ ARCH }}.zip
           unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip
   build_Linux:
