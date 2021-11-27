@@ -3,8 +3,8 @@
 # Expects RACK_SDK_VERSION environment variable to be set in workflow
 
 set -eu
-RACK_SDK_VERSION= 2.beta.1
-ARCH= lin
+RACK_SDK_VERSION=2.beta.1
+ARCH=lin
 
 
 echo ${{ RACK_SDK_VERSION }}
