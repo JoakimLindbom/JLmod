@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Expects RACK_SDK_VERSION environment variable to be set in workflow
 
