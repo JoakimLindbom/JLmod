@@ -14,10 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: Fetch SDK
-#      uses: ./.github/actions/rack_sdk
-      run: |
-          curl -o RackSDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ RACK_SDK_VERSION }}-${{ ARCH }}.zip
-          unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip
+      uses: ./.github/actions/rack_sdk
+#      run: |
+#          curl -o RackSDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ RACK_SDK_VERSION }}-${{ ARCH }}.zip
+#          unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip
   build_Linux:
     name: Build Linux
     runs-on: ubuntu-latest
