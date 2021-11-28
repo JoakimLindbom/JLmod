@@ -8,7 +8,7 @@ LABEL "com.github.actions.color"="gray-dark"
 RUN apt-get update
 RUN apt-get install -y curl unzip
 
-ADD entrypoint.sh /entrypoint.sh
-RUN chmod a+x /entrypoint.sh
+ADD entrypoint2.sh /entrypoint2.sh
+RUN chmod a+x /entrypoint2.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint2.sh"]
