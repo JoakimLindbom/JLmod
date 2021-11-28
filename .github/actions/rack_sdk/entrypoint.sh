@@ -13,8 +13,8 @@ echo Testing act
 #unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip
 #rm Rack-SDK-${{ RACK_SDK_VERSION }}.zip
 
-curl -L https://vcvrack.com/downloads/Rack-SDK-2.beta.1.zip #-o rack-sdk.zip
-unzip -o Rack-SDK-2.beta.1.zip
-rm Rack-SDK-2.beta.1.zip
+curl -L https://vcvrack.com/downloads/Rack-SDK-2.beta.1-lin.zip #-o rack-sdk.zip
+unzip -o Rack-SDK-2.beta.1-lin.zip
+rm Rack-SDK-2.beta.1-lin.zip
 
 mkdir -p plugins
