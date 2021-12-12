@@ -2,7 +2,7 @@
 
 set -eu
 
-export RACK_DIR=${GITHUB_WORKSPACE}/Rack-SDK-lin/
+export RACK_DIR=${GITHUB_WORKSPACE}/Rack-SDK-lin
 #export RACK_DIR=${GITHUB_WORKSPACE}/Rack-SDK-lin/Rack-SDK
 export RACK_USER_DIR=${GITHUB_WORKSPACE}
 
