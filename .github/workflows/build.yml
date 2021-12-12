@@ -35,7 +35,7 @@ jobs:
     - name: Build Linux
       uses: ./.github/actions/build_linux
     - name: Save artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
         path: ./dist/JLmod-${{ env['PLUGIN_BUILD_VERSION'] }}-lin.zip
