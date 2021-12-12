@@ -12,9 +12,11 @@ curl -L https://vcvrack.com/downloads/Rack-SDK-2.0.3-lin.zip -o rack-sdk.zip
 unzip -o rack-sdk.zip
 #unzip -o -d Rack-SDK-lin rack-sdk.zip
 rm rack-sdk.zip
-cd $GITHUB_WORKSPACE
+
+#cd $GITHUB_WORKSPACE
 echo Starting Linux make
 pwd
+ls
 echo Clean up
 make clean
 echo make dist
