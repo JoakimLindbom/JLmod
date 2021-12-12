@@ -22,5 +22,9 @@ rm Rack-SDK-2-lin.zip
 curl -L https://vcvrack.com/downloads/Rack-SDK-2.0.3-win.zip -o Rack-SDK-2-win.zip
 unzip -o -d Rack-SDK-win Rack-SDK-2-win.zip
 rm Rack-SDK-2-win.zip
+echo "<<<<< pdw >>>>>"
+pdw
+echo "<<<<< ls >>>>>"
+ls -l
 
 mkdir -p plugins
