@@ -5,23 +5,31 @@ on:
 name: Build Master
 env:
   PLUGIN_BUILD_VERSION: 1.0.1 # How to make this external? Get data from plugin.json
-  RACK_SDK_VERSION: 2.beta.1
+  RACK_SDK_VERSION: 2.3.0
   ARCH: lin
 jobs:
   fetch_SDK:
     name: Fetch SDK
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    #- uses: actions/checkout@master
+    - uses: actions/checkout@V2
+#      with:
+#        path: "testpath"
     - name: Fetch SDK
-      uses: ./.github/actions/rack_sdk
-#      run: |
-#          curl -o RackSDK.zip https://vcvrack.com/downloads/Rack-SDK-${{ RACK_SDK_VERSION }}-${{ ARCH }}.zip
-#          unzip Rack-SDK-${{ RACK_SDK_VERSION }}.zip
+#      uses: ./.github/actions/rack_sdk
+      run: |
+          curl -L https://vcvrack.com/downloads/Rack-SDK-2.0.3-lin.zip -o Rack-SDK-2-lin.zip
+          unzip -o -d Rack-SDK-lin Rack-SDK-2-lin.zip
+          rm Rack-SDK-2-lin.zip
+          curl -L https://vcvrack.com/downloads/Rack-SDK-2.0.3-win.zip -o Rack-SDK-2-win.zip
+          unzip -o -d Rack-SDK-win Rack-SDK-2-win.zip
+          rm Rack-SDK-2-win.zip
+          mkdir -p plugins
   build_Linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    needs: [fetch_SDK]
+#    needs: [fetch_SDK]
     steps:
     - uses: actions/checkout@master
     - name: Build Linux
