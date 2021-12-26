@@ -1,6 +1,9 @@
 #include "JLmod.hpp"
 #include "common.hpp"
 #include "plugin.hpp"
+#include <iostream>
+
+// TODO: Add 2 off-pitch oscilators
 
 #define HARMONICS 6
 
@@ -54,6 +57,7 @@ struct Fourious : Module {
 
         // Compute the frequency from the pitch parameter and input
         float pitch = inputs[CV_INPUT].value + params[OCTAVE].value;  // Base + Octave offset (-5.0 -- +5.0)
+        //std::cout<< pitch << "\n";
         pitch = clamp(pitch, -4.0f, 4.0f);
         // Default pitch (C4)
         float freq = 261.626f * powf(2.0f, pitch);
